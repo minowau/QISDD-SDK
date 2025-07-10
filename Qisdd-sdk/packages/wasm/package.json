@@ -1,0 +1,13 @@
+{
+  "name": "@qisdd/wasm",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npm run build:wasm",
+    "build:wasm": "sh build.sh"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+} 

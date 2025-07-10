@@ -1,0 +1,23 @@
+{
+  "name": "@qisdd/core",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "jest",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "snarkjs": "^0.5.0",
+    "ethers": "^6.0.0",
+    "ipfs-http-client": "^60.0.0",
+    "@openzeppelin/contracts": "^4.8.0",
+    "digital-watermarking": "^1.1.15",
+    "node-seal": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0"
+  }
+} 
