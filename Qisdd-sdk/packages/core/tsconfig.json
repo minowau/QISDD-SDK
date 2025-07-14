@@ -1,7 +1,158 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "dist"
+  "//": "Base TypeScript Configuration - tsconfig.json",
+  "tsconfig": {
+    "compilerOptions": {
+      "target": "ES2022",
+      "lib": ["ES2022", "DOM"],
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "allowSyntheticDefaultImports": true,
+      "esModuleInterop": true,
+      "forceConsistentCasingInFileNames": true,
+      "strict": true,
+      "noImplicitAny": true,
+      "strictNullChecks": true,
+      "strictFunctionTypes": true,
+      "noImplicitReturns": true,
+      "noFallthroughCasesInSwitch": true,
+      "noUncheckedIndexedAccess": true,
+      "skipLibCheck": true,
+      "declaration": true,
+      "declarationMap": true,
+      "sourceMap": true,
+      "outDir": "./dist",
+      "rootDir": "./src",
+      "removeComments": false,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "resolveJsonModule": true,
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["src/*"],
+        "@/quantum/*": ["src/quantum/*"],
+        "@/crypto/*": ["src/crypto/*"],
+        "@/logging/*": ["src/logging/*"],
+        "@/context/*": ["src/context/*"],
+        "@/storage/*": ["src/storage/*"]
+      },
+      "typeRoots": ["./node_modules/@types", "./src/types"],
+      "types": ["node", "jest"]
+    },
+    "include": [
+      "src/**/*",
+      "tests/**/*",
+      "examples/**/*"
+    ],
+    "exclude": [
+      "node_modules",
+      "dist",
+      "docs",
+      "coverage",
+      "benchmarks/results",
+      "*.config.js"
+    ],
+    "ts-node": {
+      "esm": true,
+      "experimentalSpecifierResolution": "node"
+    }
   },
-  "include": ["src/**/*"]
-} 
+
+  "//": "CommonJS Build Configuration - tsconfig.cjs.json",
+  "tsconfig.cjs": {
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "module": "commonjs",
+      "target": "ES2020",
+      "outDir": "./dist/cjs",
+      "declaration": false,
+      "declarationMap": false
+    },
+    "exclude": [
+      "node_modules",
+      "dist",
+      "docs",
+      "coverage",
+      "tests/**/*",
+      "examples/**/*",
+      "benchmarks/**/*"
+    ]
+  },
+
+  "//": "ES Modules Build Configuration - tsconfig.esm.json",
+  "tsconfig.esm": {
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "module": "ES2022",
+      "target": "ES2022",
+      "outDir": "./dist/esm",
+      "declaration": false,
+      "declarationMap": false,
+      "moduleResolution": "node"
+    },
+    "exclude": [
+      "node_modules",
+      "dist",
+      "docs",
+      "coverage",
+      "tests/**/*",
+      "examples/**/*",
+      "benchmarks/**/*"
+    ]
+  },
+
+  "//": "Type Declarations Configuration - tsconfig.types.json",
+  "tsconfig.types": {
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "module": "ES2022",
+      "target": "ES2022",
+      "outDir": "./dist",
+      "emitDeclarationOnly": true,
+      "declaration": true,
+      "declarationMap": true,
+      "sourceMap": false
+    },
+    "exclude": [
+      "node_modules",
+      "dist",
+      "docs",
+      "coverage",
+      "tests/**/*",
+      "examples/**/*",
+      "benchmarks/**/*"
+    ]
+  },
+
+  "//": "Test Configuration - tsconfig.test.json",
+  "tsconfig.test": {
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "outDir": "./dist/tests",
+      "noEmit": true,
+      "types": ["node", "jest", "@types/jest"],
+      "allowJs": true
+    },
+    "include": [
+      "src/**/*",
+      "tests/**/*"
+    ]
+  },
+
+  "//": "Development Configuration - tsconfig.dev.json",
+  "tsconfig.dev": {
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "incremental": true,
+      "tsBuildInfoFile": "./dist/.tsbuildinfo",
+      "noEmitOnError": false,
+      "preserveWatchOutput": true,
+      "pretty": true
+    },
+    "include": [
+      "src/**/*",
+      "tests/**/*",
+      "examples/**/*",
+      "scripts/**/*"
+    ]
+  }
+}

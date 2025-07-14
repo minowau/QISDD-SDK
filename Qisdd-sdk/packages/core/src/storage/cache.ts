@@ -1,8 +1,8 @@
 // QISDD-SDK Storage: Cache
-
 export class Cache {
-  private cache: Map<string, any> = new Map();
+  [x: string]: any;
   private timeouts: Map<string, NodeJS.Timeout> = new Map();
+
 
   constructor(config: any) {
     // Initialize cache (Redis, in-memory, etc.)
@@ -32,6 +32,10 @@ export class Cache {
     if (this.timeouts.has(key)) {
       clearTimeout(this.timeouts.get(key));
       this.timeouts.delete(key);
+    }
+    else{
+      this.console.error("has not deleted yet");
+      
     }
   }
 } 

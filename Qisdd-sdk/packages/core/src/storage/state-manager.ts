@@ -36,9 +36,9 @@ export class StateManager {
 
   // Delete a state record
   public deleteState(stateId: string): void {
-    for (const [dataId, states] of this.stateMap.entries()) {
+    Array.from(this.stateMap.entries()).forEach(([dataId, states]) => {
       const filtered = states.filter(s => s.id !== stateId);
       this.stateMap.set(dataId, filtered);
-    }
+    });
   }
 } 
