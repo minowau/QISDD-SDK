@@ -2,7 +2,7 @@
 // packages/core/src/logging/index.ts
 
 import { EventEmitter } from 'events';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes } from '../crypto';
 import { writeFile, appendFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 
@@ -22,13 +22,14 @@ export interface LogEntry {
   performance?: PerformanceMetrics;
 }
 
+// --- AuditEvent model for tamper-evident audit logging ---
 export interface AuditEvent {
   id: string;
   timestamp: Date;
   userId?: string;
   sessionId?: string;
-  action: string;
-  resource: string;
+  action: string; // e.g., "observe", "protect", "erase"
+  resource: string; // e.g., dataId
   resourceId?: string;
   result: 'success' | 'failure' | 'partial';
   reason?: string;
@@ -38,6 +39,8 @@ export interface AuditEvent {
   geolocation?: Geolocation;
   riskScore?: number;
   compliance?: ComplianceInfo;
+  prevHash?: string; // for hash chaining
+  hash?: string;     // for hash chaining
 }
 
 export interface PerformanceMetrics {
@@ -93,15 +96,90 @@ export enum LogCategory {
   BLOCKCHAIN = 'blockchain'
 }
 
-// Main Logger Class
+
+import { appendFileSync, readFileSync, existsSync } from 'fs';
+
+export class AuditLogger {
+  private events: AuditEvent[] = [];
+  private filePath?: string;
+
+  constructor(options?: { filePath?: string }) {
+    if (options?.filePath) {
+      this.filePath = options.filePath;
+      if (existsSync(this.filePath)) {
+        const lines = readFileSync(this.filePath, 'utf-8').split('\n').filter(Boolean);
+        this.events = lines.map(line => JSON.parse(line));
+      }
+    }
+  }
+
+  appendEvent(event: Omit<AuditEvent, 'id' | 'timestamp' | 'prevHash' | 'hash'>): AuditEvent {
+    const prev = this.events.length > 0 ? this.events[this.events.length - 1] : undefined;
+    const id = `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const timestamp = new Date();
+    const prevHash = prev?.hash || null;
+    const base = { ...event, id, timestamp, prevHash };
+    const hash = this.computeHash(base);
+    const fullEvent: AuditEvent = { ...base, hash };
+    this.events.push(fullEvent);
+    if (this.filePath) {
+      appendFileSync(this.filePath, JSON.stringify(fullEvent) + '\n', 'utf-8');
+    }
+    return fullEvent;
+  }
+
+  getEvents(filter?: Partial<AuditEvent>): AuditEvent[] {
+    if (!filter) return [...this.events];
+    return this.events.filter(e => {
+      return Object.entries(filter).every(([k, v]) => (e as any)[k] === v);
+    });
+  }
+
+  export(format: 'json' | 'csv' = 'json'): string {
+    if (format === 'json') {
+      return JSON.stringify(this.events, null, 2);
+    } else if (format === 'csv') {
+      const header = Object.keys(this.events[0] || {}).join(',');
+      const rows = this.events.map(e => Object.values(e).map(v => JSON.stringify(v)).join(','));
+      return [header, ...rows].join('\n');
+    }
+    return '';
+  }
+
+  verifyChain(): boolean {
+    for (let i = 0; i < this.events.length; ++i) {
+      const e = this.events[i];
+      const base = { ...e };
+      delete base.hash;
+      const expectedHash = this.computeHash(base);
+      if (e.hash !== expectedHash) return false;
+      if (i > 0 && e.prevHash !== this.events[i - 1].hash) return false;
+    }
+    return true;
+  }
+
+  private computeHash(event: any): string {
+    // Exclude hash field
+    const { hash, ...rest } = event;
+    return createHash('sha256').update(JSON.stringify(rest)).digest('hex');
+  }
+}
+
+// --- Integrate AuditLogger into QISDDLogger ---
+export interface QISDDLoggerConfig extends Partial<LoggerConfig> {
+  auditFilePath?: string;
+}
+
+// Patch QISDDLogger to use AuditLogger
 export class QISDDLogger extends EventEmitter {
   private logEntries: LogEntry[] = [];
   private auditEvents: AuditEvent[] = [];
   private config: LoggerConfig;
   private performanceCounters: Map<string, number> = new Map();
   private rotationTimer?: NodeJS.Timeout;
+  private auditLogger: AuditLogger;
 
-  constructor(config: Partial<LoggerConfig> = {}) {
+  constructor(config: QISDDLoggerConfig = {}) {
     super();
     
     this.config = {
@@ -122,7 +200,7 @@ export class QISDDLogger extends EventEmitter {
       sensitiveDataMasking: true,
       ...config
     };
-
+    this.auditLogger = new AuditLogger({ filePath: config.auditFilePath });
     this.setupLogRotation();
     this.setupPeriodicFlush();
   }
@@ -179,6 +257,12 @@ export class QISDDLogger extends EventEmitter {
         sessionId: event.sessionId,
         component: 'audit'
       });
+
+    // Append to auditLogger
+    this.auditLogger.appendEvent({
+      ...event,
+      // id, timestamp, prevHash, hash will be set by AuditLogger
+    });
 
     // Trim audit events if needed
     if (this.auditEvents.length > this.config.maxEntries) {
@@ -788,6 +872,17 @@ export class QISDDLogger extends EventEmitter {
     ]);
     
     return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+  }
+
+  // Expose auditLogger methods
+  public getAuditTrail(filter?: Partial<AuditEvent>): AuditEvent[] {
+    return this.auditLogger.getEvents(filter);
+  }
+  public exportAuditTrail(format: 'json' | 'csv' = 'json'): string {
+    return this.auditLogger.export(format);
+  }
+  public verifyAuditTrail(): boolean {
+    return this.auditLogger.verifyChain();
   }
 }
 

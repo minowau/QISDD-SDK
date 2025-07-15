@@ -2,6 +2,47 @@
 
 This is an example API application demonstrating usage of the QISDD-SDK for protecting and accessing sensitive data.
 
+## Audit Trail (Off-Chain, Non-Blockchain)
+
+All major operations (protect, access, erase, etc.) are logged to an off-chain, tamper-evident audit log. API responses for audit include a list of audit events for the given dataId. Blockchain audit is not included in v1.
+
+### Audit Event Structure
+```json
+{
+  "id": "audit_...",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "userId": "user_123",
+  "action": "observe",
+  "resource": "data",
+  "resourceId": "data_xxx",
+  "result": "success",
+  "metadata": { ... },
+  "ipAddress": "1.2.3.4",
+  "userAgent": "Mozilla/5.0 ...",
+  "prevHash": "...",
+  "hash": "..."
+}
+```
+
+### GET /api/audit/:id
+Retrieve audit log for a protected dataId (off-chain).
+
+**Response:**
+```json
+{
+  "success": true,
+  "audit_trail": [
+    { "id": "audit_...", "timestamp": "...", ... },
+    ...
+  ]
+}
+```
+
+### Exporting Audit Logs
+Audit logs can be exported in JSON or CSV format for compliance and reporting.
+
+---
+
 ## Blockchain Auditability
 
 All major operations (protect, access, erase) are logged to the blockchain (Polygon) if configured. API responses include a `blockchain_ref` field with the transaction hash for audit/compliance.

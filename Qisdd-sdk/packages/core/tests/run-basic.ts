@@ -38,18 +38,11 @@ async function runBasicTest() {
     console.log(`   🛡️ Blocked: ${!unauthorized.success}`);
     console.log(`   ⚠️ Poisoned: ${!!unauthorized.data._qisdd_warning}`);
 
+    // Test audit trail
+    console.log('\n4️⃣ Querying audit trail...');
+    const auditTrail = client.logger.getAuditTrail({ resourceId: protection.id });
+    console.log('   📝 Audit events:', auditTrail);
+
     console.log('\n📊 Final Metrics:');
     const metrics = client.getMetrics();
-    console.log(`   Protected: ${metrics.totalDataProtected}`);
-    console.log(`   Unauthorized: ${metrics.unauthorizedAttempts}`);
-    console.log(`   Health: ${metrics.systemHealth.overall}`);
-
-  } catch (error) {
-    console.error('❌ Error:', error);
-  } finally {
-    await client.destroy();
-    console.log('\n✅ Test completed!');
-  }
-}
-
-runBasicTest();
+    console.log(`

@@ -135,26 +135,17 @@ router.post('/verify', function (req, res) { return __awaiter(void 0, void 0, vo
         }
     });
 }); });
-// GET /audit/:id - Retrieve audit log (mock)
+// GET /audit/:id - Retrieve audit log (off-chain, non-blockchain)
 router.get('/audit/:id', function (req, res) {
     try {
-        // For MVP, return a mock audit log
         var id = req.params.id;
+        // Use SDK's getAuditTrail method (off-chain)
+        var auditTrail = sdk.getAuditTrail({ resourceId: id });
         return res.status(200).json({
             success: true,
-            audit_trail: {
-                data_id: id,
-                total_events: 3,
-                events: [
-                    { id: 'evt_001', timestamp: new Date().toISOString(), type: 'data_created', actor: 'user_123', context: { ip: '192.168.1.1' } },
-                    { id: 'evt_002', timestamp: new Date().toISOString(), type: 'access_authorized', actor: 'api_key_456', context: { ip: '10.0.0.5' } },
-                    { id: 'evt_003', timestamp: new Date().toISOString(), type: 'access_denied', actor: 'unknown', context: { ip: '45.67.89.10' } },
-                ],
-                statistics: { total_accesses: 2, authorized: 1, unauthorized: 1, unique_actors: 2 },
-            },
+            audit_trail: auditTrail
         });
-    }
-    catch (err) {
+    } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
     }
 });
