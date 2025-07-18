@@ -1,10 +1,10 @@
 // QISDD-SDK Logging & Auditing System
 // packages/core/src/logging/index.ts
 
-import { EventEmitter } from 'events';
-import { createHash, randomBytes } from '../crypto';
-import { writeFile, appendFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { EventEmitter } from "events";
+import { createHash, randomBytes } from "crypto";
+import { writeFile, appendFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 // Core Logging Interfaces
 export interface LogEntry {
@@ -31,7 +31,7 @@ export interface AuditEvent {
   action: string; // e.g., "observe", "protect", "erase"
   resource: string; // e.g., dataId
   resourceId?: string;
-  result: 'success' | 'failure' | 'partial';
+  result: "success" | "failure" | "partial";
   reason?: string;
   metadata?: any;
   ipAddress?: string;
@@ -40,7 +40,7 @@ export interface AuditEvent {
   riskScore?: number;
   compliance?: ComplianceInfo;
   prevHash?: string; // for hash chaining
-  hash?: string;     // for hash chaining
+  hash?: string; // for hash chaining
 }
 
 export interface PerformanceMetrics {
@@ -70,7 +70,7 @@ export interface LogContext {
 export interface ComplianceInfo {
   regulation: string; // GDPR, PCI-DSS, SOX, etc.
   requirement: string;
-  status: 'compliant' | 'non-compliant' | 'pending';
+  status: "compliant" | "non-compliant" | "pending";
   evidence?: string;
 }
 
@@ -80,24 +80,23 @@ export enum LogLevel {
   INFO = 2,
   WARN = 3,
   ERROR = 4,
-  FATAL = 5
+  FATAL = 5,
 }
 
 export enum LogCategory {
-  QUANTUM = 'quantum',
-  CRYPTO = 'crypto',
-  SECURITY = 'security',
-  PERFORMANCE = 'performance',
-  AUDIT = 'audit',
-  COMPLIANCE = 'compliance',
-  SYSTEM = 'system',
-  USER = 'user',
-  API = 'api',
-  BLOCKCHAIN = 'blockchain'
+  QUANTUM = "quantum",
+  CRYPTO = "crypto",
+  SECURITY = "security",
+  PERFORMANCE = "performance",
+  AUDIT = "audit",
+  COMPLIANCE = "compliance",
+  SYSTEM = "system",
+  USER = "user",
+  API = "api",
+  BLOCKCHAIN = "blockchain",
 }
 
-
-import { appendFileSync, readFileSync, existsSync } from 'fs';
+import { appendFileSync, readFileSync, existsSync } from "fs";
 
 export class AuditLogger {
   private events: AuditEvent[] = [];
@@ -107,14 +106,19 @@ export class AuditLogger {
     if (options?.filePath) {
       this.filePath = options.filePath;
       if (existsSync(this.filePath)) {
-        const lines = readFileSync(this.filePath, 'utf-8').split('\n').filter(Boolean);
-        this.events = lines.map(line => JSON.parse(line));
+        const lines = readFileSync(this.filePath, "utf-8")
+          .split("\n")
+          .filter(Boolean);
+        this.events = lines.map((line) => JSON.parse(line));
       }
     }
   }
 
-  appendEvent(event: Omit<AuditEvent, 'id' | 'timestamp' | 'prevHash' | 'hash'>): AuditEvent {
-    const prev = this.events.length > 0 ? this.events[this.events.length - 1] : undefined;
+  appendEvent(
+    event: Omit<AuditEvent, "id" | "timestamp" | "prevHash" | "hash">,
+  ): AuditEvent {
+    const prev =
+      this.events.length > 0 ? this.events[this.events.length - 1] : undefined;
     const id = `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const timestamp = new Date();
     const prevHash = prev?.hash || null;
@@ -123,27 +127,31 @@ export class AuditLogger {
     const fullEvent: AuditEvent = { ...base, hash };
     this.events.push(fullEvent);
     if (this.filePath) {
-      appendFileSync(this.filePath, JSON.stringify(fullEvent) + '\n', 'utf-8');
+      appendFileSync(this.filePath, JSON.stringify(fullEvent) + "\n", "utf-8");
     }
     return fullEvent;
   }
 
   getEvents(filter?: Partial<AuditEvent>): AuditEvent[] {
     if (!filter) return [...this.events];
-    return this.events.filter(e => {
+    return this.events.filter((e) => {
       return Object.entries(filter).every(([k, v]) => (e as any)[k] === v);
     });
   }
 
-  export(format: 'json' | 'csv' = 'json'): string {
-    if (format === 'json') {
+  export(format: "json" | "csv" = "json"): string {
+    if (format === "json") {
       return JSON.stringify(this.events, null, 2);
-    } else if (format === 'csv') {
-      const header = Object.keys(this.events[0] || {}).join(',');
-      const rows = this.events.map(e => Object.values(e).map(v => JSON.stringify(v)).join(','));
-      return [header, ...rows].join('\n');
+    } else if (format === "csv") {
+      const header = Object.keys(this.events[0] || {}).join(",");
+      const rows = this.events.map((e) =>
+        Object.values(e)
+          .map((v) => JSON.stringify(v))
+          .join(","),
+      );
+      return [header, ...rows].join("\n");
     }
-    return '';
+    return "";
   }
 
   verifyChain(): boolean {
@@ -161,7 +169,7 @@ export class AuditLogger {
   private computeHash(event: any): string {
     // Exclude hash field
     const { hash, ...rest } = event;
-    return createHash('sha256').update(JSON.stringify(rest)).digest('hex');
+    return createHash("sha256").update(JSON.stringify(rest)).digest("hex");
   }
 }
 
@@ -181,14 +189,14 @@ export class QISDDLogger extends EventEmitter {
 
   constructor(config: QISDDLoggerConfig = {}) {
     super();
-    
+
     this.config = {
       level: LogLevel.INFO,
       maxEntries: 10000,
       enableConsole: true,
       enableFile: true,
       enableStructured: true,
-      logDirectory: './logs',
+      logDirectory: "./logs",
       rotationInterval: 24 * 60 * 60 * 1000, // 24 hours
       compressionEnabled: true,
       encryptionEnabled: false,
@@ -198,7 +206,7 @@ export class QISDDLogger extends EventEmitter {
       enableMetrics: true,
       enableCorrelation: true,
       sensitiveDataMasking: true,
-      ...config
+      ...config,
     };
     this.auditLogger = new AuditLogger({ filePath: config.auditFilePath });
     this.setupLogRotation();
@@ -207,56 +215,126 @@ export class QISDDLogger extends EventEmitter {
 
   // Core logging methods
   public trace(message: string, data?: any, context?: LogContext): void {
-    this.log(LogLevel.TRACE, LogCategory.SYSTEM, 'trace', message, data, context);
+    this.log(
+      LogLevel.TRACE,
+      LogCategory.SYSTEM,
+      "trace",
+      message,
+      data,
+      context,
+    );
   }
 
   public debug(message: string, data?: any, context?: LogContext): void {
-    this.log(LogLevel.DEBUG, LogCategory.SYSTEM, 'debug', message, data, context);
+    this.log(
+      LogLevel.DEBUG,
+      LogCategory.SYSTEM,
+      "debug",
+      message,
+      data,
+      context,
+    );
   }
 
   public info(message: string, data?: any, context?: LogContext): void {
-    this.log(LogLevel.INFO, LogCategory.SYSTEM, 'info', message, data, context);
+    this.log(LogLevel.INFO, LogCategory.SYSTEM, "info", message, data, context);
   }
 
   public warn(message: string, data?: any, context?: LogContext): void {
-    this.log(LogLevel.WARN, LogCategory.SYSTEM, 'warning', message, data, context);
+    this.log(
+      LogLevel.WARN,
+      LogCategory.SYSTEM,
+      "warning",
+      message,
+      data,
+      context,
+    );
   }
 
-  public error(message: string, error?: Error, data?: any, context?: LogContext): void {
-    this.log(LogLevel.ERROR, LogCategory.SYSTEM, 'error', message, data, context, error);
+  public error(
+    message: string,
+    error?: Error,
+    data?: any,
+    context?: LogContext,
+  ): void {
+    this.log(
+      LogLevel.ERROR,
+      LogCategory.SYSTEM,
+      "error",
+      message,
+      data,
+      context,
+      error,
+    );
   }
 
-  public fatal(message: string, error?: Error, data?: any, context?: LogContext): void {
-    this.log(LogLevel.FATAL, LogCategory.SYSTEM, 'fatal', message, data, context, error);
+  public fatal(
+    message: string,
+    error?: Error,
+    data?: any,
+    context?: LogContext,
+  ): void {
+    this.log(
+      LogLevel.FATAL,
+      LogCategory.SYSTEM,
+      "fatal",
+      message,
+      data,
+      context,
+      error,
+    );
   }
 
   // Category-specific logging methods
-  public quantum(level: LogLevel, event: string, message: string, data?: any, context?: LogContext): void {
+  public quantum(
+    level: LogLevel,
+    event: string,
+    message: string,
+    data?: any,
+    context?: LogContext,
+  ): void {
     this.log(level, LogCategory.QUANTUM, event, message, data, context);
   }
 
-  public crypto(level: LogLevel, event: string, message: string, data?: any, context?: LogContext): void {
+  public crypto(
+    level: LogLevel,
+    event: string,
+    message: string,
+    data?: any,
+    context?: LogContext,
+  ): void {
     this.log(level, LogCategory.CRYPTO, event, message, data, context);
   }
 
-  public security(level: LogLevel, event: string, message: string, data?: any, context?: LogContext): void {
+  public security(
+    level: LogLevel,
+    event: string,
+    message: string,
+    data?: any,
+    context?: LogContext,
+  ): void {
     this.log(level, LogCategory.SECURITY, event, message, data, context);
   }
 
   public audit(event: AuditEvent): void {
     this.auditEvents.push(event);
-    
+
     // Emit for real-time processing
-    this.emit('auditEvent', event);
-    
+    this.emit("auditEvent", event);
+
     // Log as structured entry
-    this.log(LogLevel.INFO, LogCategory.AUDIT, event.action, 
-      `User ${event.userId} performed ${event.action} on ${event.resource}`, 
-      event, {
+    this.log(
+      LogLevel.INFO,
+      LogCategory.AUDIT,
+      event.action,
+      `User ${event.userId} performed ${event.action} on ${event.resource}`,
+      event,
+      {
         userId: event.userId,
         sessionId: event.sessionId,
-        component: 'audit'
-      });
+        component: "audit",
+      },
+    );
 
     // Append to auditLogger
     this.auditLogger.appendEvent({
@@ -275,7 +353,10 @@ export class QISDDLogger extends EventEmitter {
     this.performanceCounters.set(operationId, Date.now());
   }
 
-  public endPerformanceTimer(operationId: string, additionalMetrics?: Partial<PerformanceMetrics>): PerformanceMetrics {
+  public endPerformanceTimer(
+    operationId: string,
+    additionalMetrics?: Partial<PerformanceMetrics>,
+  ): PerformanceMetrics {
     const startTime = this.performanceCounters.get(operationId);
     if (!startTime) {
       throw new Error(`Performance timer ${operationId} was not started`);
@@ -287,24 +368,37 @@ export class QISDDLogger extends EventEmitter {
     const metrics: PerformanceMetrics = {
       duration,
       memoryUsage: process.memoryUsage().heapUsed,
-      ...additionalMetrics
+      ...additionalMetrics,
     };
 
-    this.log(LogLevel.INFO, LogCategory.PERFORMANCE, 'operation_completed', 
-      `Operation ${operationId} completed`, 
+    this.log(
+      LogLevel.INFO,
+      LogCategory.PERFORMANCE,
+      "operation_completed",
+      `Operation ${operationId} completed`,
       { operationId, metrics },
-      { operationId, component: 'performance' },
+      { operationId, component: "performance" },
       undefined,
-      metrics
+      metrics,
     );
 
     return metrics;
   }
 
   // Structured logging with correlation
-  public correlatedLog(correlationId: string, level: LogLevel, category: LogCategory, 
-                      event: string, message: string, data?: any, context?: LogContext): void {
-    this.log(level, category, event, message, data, { ...context, correlationId });
+  public correlatedLog(
+    correlationId: string,
+    level: LogLevel,
+    category: LogCategory,
+    event: string,
+    message: string,
+    data?: any,
+    context?: LogContext,
+  ): void {
+    this.log(level, category, event, message, data, {
+      ...context,
+      correlationId,
+    });
   }
 
   // Main logging implementation
@@ -316,7 +410,7 @@ export class QISDDLogger extends EventEmitter {
     data?: any,
     context?: LogContext,
     error?: Error,
-    performance?: PerformanceMetrics
+    performance?: PerformanceMetrics,
   ): void {
     if (level < this.config.level) {
       return; // Skip if below configured level
@@ -329,17 +423,19 @@ export class QISDDLogger extends EventEmitter {
       category,
       event,
       message,
-      data: this.config.sensitiveDataMasking ? this.maskSensitiveData(data) : data,
+      data: this.config.sensitiveDataMasking
+        ? this.maskSensitiveData(data)
+        : data,
       context,
       error,
       stackTrace: error ? error.stack : undefined,
-      performance
+      performance,
     };
 
     this.logEntries.push(logEntry);
 
     // Emit for real-time processing
-    this.emit('logEntry', logEntry);
+    this.emit("logEntry", logEntry);
 
     // Console output
     if (this.config.enableConsole) {
@@ -348,8 +444,8 @@ export class QISDDLogger extends EventEmitter {
 
     // Async file writing (non-blocking)
     if (this.config.enableFile) {
-      this.writeToFileAsync(logEntry).catch(err => {
-        console.error('Failed to write log to file:', err);
+      this.writeToFileAsync(logEntry).catch((err) => {
+        console.error("Failed to write log to file:", err);
       });
     }
 
@@ -365,31 +461,36 @@ export class QISDDLogger extends EventEmitter {
 
     if (filter) {
       if (filter.level !== undefined) {
-        entries = entries.filter(e => e.level >= filter.level!);
+        entries = entries.filter((e) => e.level >= filter.level!);
       }
       if (filter.category) {
-        entries = entries.filter(e => e.category === filter.category);
+        entries = entries.filter((e) => e.category === filter.category);
       }
       if (filter.startTime) {
-        entries = entries.filter(e => e.timestamp >= filter.startTime!);
+        entries = entries.filter((e) => e.timestamp >= filter.startTime!);
       }
       if (filter.endTime) {
-        entries = entries.filter(e => e.timestamp <= filter.endTime!);
+        entries = entries.filter((e) => e.timestamp <= filter.endTime!);
       }
       if (filter.correlationId) {
-        entries = entries.filter(e => e.context?.correlationId === filter.correlationId);
+        entries = entries.filter(
+          (e) => e.context?.correlationId === filter.correlationId,
+        );
       }
       if (filter.userId) {
-        entries = entries.filter(e => e.context?.userId === filter.userId);
+        entries = entries.filter((e) => e.context?.userId === filter.userId);
       }
       if (filter.component) {
-        entries = entries.filter(e => e.context?.component === filter.component);
+        entries = entries.filter(
+          (e) => e.context?.component === filter.component,
+        );
       }
       if (filter.searchText) {
         const searchLower = filter.searchText.toLowerCase();
-        entries = entries.filter(e => 
-          e.message.toLowerCase().includes(searchLower) ||
-          e.event.toLowerCase().includes(searchLower)
+        entries = entries.filter(
+          (e) =>
+            e.message.toLowerCase().includes(searchLower) ||
+            e.event.toLowerCase().includes(searchLower),
         );
       }
     }
@@ -402,25 +503,27 @@ export class QISDDLogger extends EventEmitter {
 
     if (filter) {
       if (filter.userId) {
-        events = events.filter(e => e.userId === filter.userId);
+        events = events.filter((e) => e.userId === filter.userId);
       }
       if (filter.action) {
-        events = events.filter(e => e.action === filter.action);
+        events = events.filter((e) => e.action === filter.action);
       }
       if (filter.resource) {
-        events = events.filter(e => e.resource === filter.resource);
+        events = events.filter((e) => e.resource === filter.resource);
       }
       if (filter.result) {
-        events = events.filter(e => e.result === filter.result);
+        events = events.filter((e) => e.result === filter.result);
       }
       if (filter.startTime) {
-        events = events.filter(e => e.timestamp >= filter.startTime!);
+        events = events.filter((e) => e.timestamp >= filter.startTime!);
       }
       if (filter.endTime) {
-        events = events.filter(e => e.timestamp <= filter.endTime!);
+        events = events.filter((e) => e.timestamp <= filter.endTime!);
       }
       if (filter.riskScoreMin !== undefined) {
-        events = events.filter(e => (e.riskScore || 0) >= filter.riskScoreMin!);
+        events = events.filter(
+          (e) => (e.riskScore || 0) >= filter.riskScoreMin!,
+        );
       }
     }
 
@@ -428,92 +531,112 @@ export class QISDDLogger extends EventEmitter {
   }
 
   // Analytics and reporting
-  public generateSecurityReport(timeRange: { start: Date; end: Date }): SecurityReport {
+  public generateSecurityReport(timeRange: {
+    start: Date;
+    end: Date;
+  }): SecurityReport {
     const auditEvents = this.getAuditEvents({
       startTime: timeRange.start,
-      endTime: timeRange.end
+      endTime: timeRange.end,
     });
 
     const logEntries = this.getLogEntries({
       startTime: timeRange.start,
       endTime: timeRange.end,
-      category: LogCategory.SECURITY
+      category: LogCategory.SECURITY,
     });
 
-    const failedAttempts = auditEvents.filter(e => e.result === 'failure');
-    const securityEvents = logEntries.filter(e => 
-      e.level >= LogLevel.WARN && e.category === LogCategory.SECURITY
+    const failedAttempts = auditEvents.filter((e) => e.result === "failure");
+    const securityEvents = logEntries.filter(
+      (e) => e.level >= LogLevel.WARN && e.category === LogCategory.SECURITY,
     );
 
     const userActivities = this.analyzeUserActivities(auditEvents);
-    const threatIndicators = this.detectThreatIndicators(auditEvents, logEntries);
+    const threatIndicators = this.detectThreatIndicators(
+      auditEvents,
+      logEntries,
+    );
     const complianceStatus = this.assessCompliance(auditEvents);
 
     return {
       period: timeRange,
       summary: {
         totalEvents: auditEvents.length,
-        successfulOperations: auditEvents.filter(e => e.result === 'success').length,
+        successfulOperations: auditEvents.filter((e) => e.result === "success")
+          .length,
         failedOperations: failedAttempts.length,
         securityIncidents: securityEvents.length,
-        uniqueUsers: new Set(auditEvents.map(e => e.userId).filter(Boolean)).size,
-        averageRiskScore: this.calculateAverageRiskScore(auditEvents)
+        uniqueUsers: new Set(auditEvents.map((e) => e.userId).filter(Boolean))
+          .size,
+        averageRiskScore: this.calculateAverageRiskScore(auditEvents),
       },
       failedAttempts: failedAttempts.slice(0, 100), // Top 100
       securityEvents: securityEvents.slice(0, 100), // Top 100
       userActivities,
       threatIndicators,
       complianceStatus,
-      recommendations: this.generateSecurityRecommendations(failedAttempts, securityEvents)
+      recommendations: this.generateSecurityRecommendations(
+        failedAttempts,
+        securityEvents,
+      ),
     };
   }
 
-  public generatePerformanceReport(timeRange: { start: Date; end: Date }): PerformanceReport {
+  public generatePerformanceReport(timeRange: {
+    start: Date;
+    end: Date;
+  }): PerformanceReport {
     const performanceLogs = this.getLogEntries({
       startTime: timeRange.start,
       endTime: timeRange.end,
-      category: LogCategory.PERFORMANCE
-    }).filter(e => e.performance);
+      category: LogCategory.PERFORMANCE,
+    }).filter((e) => e.performance);
 
-    const durations = performanceLogs.map(e => e.performance!.duration);
-    const memoryUsages = performanceLogs.map(e => e.performance!.memoryUsage).filter(Boolean) as number[];
+    const durations = performanceLogs.map((e) => e.performance!.duration);
+    const memoryUsages = performanceLogs
+      .map((e) => e.performance!.memoryUsage)
+      .filter(Boolean) as number[];
 
     return {
       period: timeRange,
       summary: {
         totalOperations: performanceLogs.length,
-        averageDuration: durations.reduce((a, b) => a + b, 0) / durations.length || 0,
+        averageDuration:
+          durations.reduce((a, b) => a + b, 0) / durations.length || 0,
         medianDuration: this.calculateMedian(durations),
         p95Duration: this.calculatePercentile(durations, 95),
         p99Duration: this.calculatePercentile(durations, 99),
-        averageMemoryUsage: memoryUsages.reduce((a, b) => a + b, 0) / memoryUsages.length || 0,
-        slowestOperations: this.findSlowestOperations(performanceLogs, 10)
+        averageMemoryUsage:
+          memoryUsages.reduce((a, b) => a + b, 0) / memoryUsages.length || 0,
+        slowestOperations: this.findSlowestOperations(performanceLogs, 10),
       },
       trends: this.analyzePerformanceTrends(performanceLogs),
       bottlenecks: this.identifyBottlenecks(performanceLogs),
-      recommendations: this.generatePerformanceRecommendations(performanceLogs)
+      recommendations: this.generatePerformanceRecommendations(performanceLogs),
     };
   }
 
   // Export and backup
-  public async exportLogs(format: 'json' | 'csv' | 'ndjson' = 'json'): Promise<string> {
+  public async exportLogs(
+    format: "json" | "csv" | "ndjson" = "json",
+  ): Promise<string> {
     const data = {
       metadata: {
         exportTime: new Date(),
         totalEntries: this.logEntries.length,
         totalAuditEvents: this.auditEvents.length,
-        format
+        format,
       },
       logEntries: this.logEntries,
-      auditEvents: this.auditEvents
+      auditEvents: this.auditEvents,
     };
 
     switch (format) {
-      case 'json':
+      case "json":
         return JSON.stringify(data, null, 2);
-      case 'ndjson':
-        return this.logEntries.map(entry => JSON.stringify(entry)).join('\n');
-      case 'csv':
+      case "ndjson":
+        return this.logEntries.map((entry) => JSON.stringify(entry)).join("\n");
+      case "csv":
         return this.convertToCSV(this.logEntries);
       default:
         throw new Error(`Unsupported format: ${format}`);
@@ -522,18 +645,24 @@ export class QISDDLogger extends EventEmitter {
 
   // Cleanup and maintenance
   public async cleanup(): Promise<void> {
-    const cutoffDate = new Date(Date.now() - (this.config.retentionDays * 24 * 60 * 60 * 1000));
-    
+    const cutoffDate = new Date(
+      Date.now() - this.config.retentionDays * 24 * 60 * 60 * 1000,
+    );
+
     const beforeLogCount = this.logEntries.length;
     const beforeAuditCount = this.auditEvents.length;
-    
-    this.logEntries = this.logEntries.filter(entry => entry.timestamp > cutoffDate);
-    this.auditEvents = this.auditEvents.filter(event => event.timestamp > cutoffDate);
-    
-    this.info('Log cleanup completed', {
+
+    this.logEntries = this.logEntries.filter(
+      (entry) => entry.timestamp > cutoffDate,
+    );
+    this.auditEvents = this.auditEvents.filter(
+      (event) => event.timestamp > cutoffDate,
+    );
+
+    this.info("Log cleanup completed", {
       removedLogEntries: beforeLogCount - this.logEntries.length,
       removedAuditEvents: beforeAuditCount - this.auditEvents.length,
-      cutoffDate
+      cutoffDate,
     });
   }
 
@@ -548,26 +677,34 @@ export class QISDDLogger extends EventEmitter {
 
   // Private helper methods
   private generateId(): string {
-    return `log_${Date.now()}_${randomBytes(4).toString('hex')}`;
+    return `log_${Date.now()}_${randomBytes(4).toString("hex")}`;
   }
 
   private maskSensitiveData(data: any): any {
-    if (!data || typeof data !== 'object') {
+    if (!data || typeof data !== "object") {
       return data;
     }
 
     const sensitiveFields = [
-      'password', 'token', 'secret', 'key', 'credentials',
-      'ssn', 'sin', 'creditCard', 'bankAccount', 'pin'
+      "password",
+      "token",
+      "secret",
+      "key",
+      "credentials",
+      "ssn",
+      "sin",
+      "creditCard",
+      "bankAccount",
+      "pin",
     ];
 
     const masked = { ...data };
-    
+
     for (const [key, value] of Object.entries(masked)) {
       const lowerKey = key.toLowerCase();
-      if (sensitiveFields.some(field => lowerKey.includes(field))) {
-        masked[key] = '***MASKED***';
-      } else if (typeof value === 'object' && value !== null) {
+      if (sensitiveFields.some((field) => lowerKey.includes(field))) {
+        masked[key] = "***MASKED***";
+      } else if (typeof value === "object" && value !== null) {
         masked[key] = this.maskSensitiveData(value);
       }
     }
@@ -577,32 +714,36 @@ export class QISDDLogger extends EventEmitter {
 
   private outputToConsole(entry: LogEntry): void {
     const levelColors = {
-      [LogLevel.TRACE]: '\x1b[37m', // White
-      [LogLevel.DEBUG]: '\x1b[36m', // Cyan
-      [LogLevel.INFO]: '\x1b[32m',  // Green
-      [LogLevel.WARN]: '\x1b[33m',  // Yellow
-      [LogLevel.ERROR]: '\x1b[31m', // Red
-      [LogLevel.FATAL]: '\x1b[35m'  // Magenta
+      [LogLevel.TRACE]: "\x1b[37m", // White
+      [LogLevel.DEBUG]: "\x1b[36m", // Cyan
+      [LogLevel.INFO]: "\x1b[32m", // Green
+      [LogLevel.WARN]: "\x1b[33m", // Yellow
+      [LogLevel.ERROR]: "\x1b[31m", // Red
+      [LogLevel.FATAL]: "\x1b[35m", // Magenta
     };
 
-    const reset = '\x1b[0m';
+    const reset = "\x1b[0m";
     const color = levelColors[entry.level];
     const levelName = LogLevel[entry.level];
-    
+
     const timestamp = entry.timestamp.toISOString();
-    const context = entry.context ? ` [${entry.context.component}]` : '';
-    const correlationId = entry.context?.correlationId ? ` (${entry.context.correlationId})` : '';
-    
-    console.log(`${color}${timestamp} ${levelName}${context}${correlationId}: ${entry.message}${reset}`);
-    
+    const context = entry.context ? ` [${entry.context.component}]` : "";
+    const correlationId = entry.context?.correlationId
+      ? ` (${entry.context.correlationId})`
+      : "";
+
+    console.log(
+      `${color}${timestamp} ${levelName}${context}${correlationId}: ${entry.message}${reset}`,
+    );
+
     if (entry.data && this.config.level <= LogLevel.DEBUG) {
-      console.log('  Data:', entry.data);
+      console.log("  Data:", entry.data);
     }
-    
+
     if (entry.error) {
-      console.error('  Error:', entry.error.message);
+      console.error("  Error:", entry.error.message);
       if (entry.stackTrace && this.config.level <= LogLevel.DEBUG) {
-        console.error('  Stack:', entry.stackTrace);
+        console.error("  Stack:", entry.stackTrace);
       }
     }
   }
@@ -610,41 +751,41 @@ export class QISDDLogger extends EventEmitter {
   private async writeToFileAsync(entry: LogEntry): Promise<void> {
     try {
       await mkdir(this.config.logDirectory, { recursive: true });
-      
+
       const filename = this.getLogFilename();
       const filepath = join(this.config.logDirectory, filename);
-      
-      const logLine = this.config.enableStructured 
-        ? JSON.stringify(entry) + '\n'
-        : this.formatPlainTextLog(entry) + '\n';
-      
-      await appendFile(filepath, logLine, 'utf-8');
+
+      const logLine = this.config.enableStructured
+        ? JSON.stringify(entry) + "\n"
+        : this.formatPlainTextLog(entry) + "\n";
+
+      await appendFile(filepath, logLine, "utf-8");
     } catch (error) {
       // Don't log errors about logging to prevent infinite loops
-      console.error('Failed to write log entry to file:', error);
+      console.error("Failed to write log entry to file:", error);
     }
   }
 
   private getLogFilename(): string {
-    const date = new Date().toISOString().split('T')[0];
+    const date = new Date().toISOString().split("T")[0];
     return `qisdd-${date}.log`;
   }
 
   private formatPlainTextLog(entry: LogEntry): string {
     const timestamp = entry.timestamp.toISOString();
     const level = LogLevel[entry.level];
-    const context = entry.context ? ` [${entry.context.component}]` : '';
-    
+    const context = entry.context ? ` [${entry.context.component}]` : "";
+
     let line = `${timestamp} ${level}${context}: ${entry.message}`;
-    
+
     if (entry.data) {
       line += ` | Data: ${JSON.stringify(entry.data)}`;
     }
-    
+
     if (entry.error) {
       line += ` | Error: ${entry.error.message}`;
     }
-    
+
     return line;
   }
 
@@ -656,25 +797,25 @@ export class QISDDLogger extends EventEmitter {
 
   private setupPeriodicFlush(): void {
     setInterval(() => {
-      this.emit('flush', {
+      this.emit("flush", {
         logEntries: this.logEntries.length,
-        auditEvents: this.auditEvents.length
+        auditEvents: this.auditEvents.length,
       });
     }, this.config.flushInterval);
   }
 
   private async rotateLogFiles(): Promise<void> {
     // Implementation for log file rotation
-    this.info('Log rotation initiated');
+    this.info("Log rotation initiated");
   }
 
   // Analytics helper methods
   private analyzeUserActivities(auditEvents: AuditEvent[]): any {
     const userStats = new Map<string, any>();
-    
-    auditEvents.forEach(event => {
+
+    auditEvents.forEach((event) => {
       if (!event.userId) return;
-      
+
       if (!userStats.has(event.userId)) {
         userStats.set(event.userId, {
           userId: event.userId,
@@ -684,21 +825,21 @@ export class QISDDLogger extends EventEmitter {
           uniqueResources: new Set(),
           averageRiskScore: 0,
           firstAction: event.timestamp,
-          lastAction: event.timestamp
+          lastAction: event.timestamp,
         });
       }
-      
+
       const stats = userStats.get(event.userId)!;
       stats.totalActions++;
-      
-      if (event.result === 'success') {
+
+      if (event.result === "success") {
         stats.successfulActions++;
-      } else if (event.result === 'failure') {
+      } else if (event.result === "failure") {
         stats.failedActions++;
       }
-      
+
       stats.uniqueResources.add(event.resource);
-      
+
       if (event.timestamp < stats.firstAction) {
         stats.firstAction = event.timestamp;
       }
@@ -706,54 +847,61 @@ export class QISDDLogger extends EventEmitter {
         stats.lastAction = event.timestamp;
       }
     });
-    
-    return Array.from(userStats.values()).map(stats => ({
+
+    return Array.from(userStats.values()).map((stats) => ({
       ...stats,
-      uniqueResources: stats.uniqueResources.size
+      uniqueResources: stats.uniqueResources.size,
     }));
   }
 
-  private detectThreatIndicators(auditEvents: AuditEvent[], logEntries: LogEntry[]): any[] {
+  private detectThreatIndicators(
+    auditEvents: AuditEvent[],
+    logEntries: LogEntry[],
+  ): any[] {
     const indicators = [];
-    
+
     // Multiple failed attempts
     const failuresByUser = new Map<string, number>();
-    auditEvents.filter(e => e.result === 'failure').forEach(event => {
-      const count = failuresByUser.get(event.userId || 'unknown') || 0;
-      failuresByUser.set(event.userId || 'unknown', count + 1);
-    });
-    
+    auditEvents
+      .filter((e) => e.result === "failure")
+      .forEach((event) => {
+        const count = failuresByUser.get(event.userId || "unknown") || 0;
+        failuresByUser.set(event.userId || "unknown", count + 1);
+      });
+
     failuresByUser.forEach((count, userId) => {
       if (count >= 5) {
         indicators.push({
-          type: 'multiple_failures',
+          type: "multiple_failures",
           userId,
           count,
-          severity: count >= 10 ? 'high' : 'medium'
+          severity: count >= 10 ? "high" : "medium",
         });
       }
     });
-    
+
     // High risk score events
-    const highRiskEvents = auditEvents.filter(e => (e.riskScore || 0) > 0.8);
+    const highRiskEvents = auditEvents.filter((e) => (e.riskScore || 0) > 0.8);
     if (highRiskEvents.length > 0) {
       indicators.push({
-        type: 'high_risk_activity',
+        type: "high_risk_activity",
         count: highRiskEvents.length,
-        averageRiskScore: highRiskEvents.reduce((sum, e) => sum + (e.riskScore || 0), 0) / highRiskEvents.length,
-        severity: 'high'
+        averageRiskScore:
+          highRiskEvents.reduce((sum, e) => sum + (e.riskScore || 0), 0) /
+          highRiskEvents.length,
+        severity: "high",
       });
     }
-    
+
     return indicators;
   }
 
   private assessCompliance(auditEvents: AuditEvent[]): any {
-    const complianceEvents = auditEvents.filter(e => e.compliance);
-    
+    const complianceEvents = auditEvents.filter((e) => e.compliance);
+
     const complianceByRegulation = new Map<string, any>();
-    
-    complianceEvents.forEach(event => {
+
+    complianceEvents.forEach((event) => {
       const regulation = event.compliance!.regulation;
       if (!complianceByRegulation.has(regulation)) {
         complianceByRegulation.set(regulation, {
@@ -761,52 +909,65 @@ export class QISDDLogger extends EventEmitter {
           total: 0,
           compliant: 0,
           nonCompliant: 0,
-          pending: 0
+          pending: 0,
         });
       }
-      
+
       const stats = complianceByRegulation.get(regulation)!;
       stats.total++;
-      
+
       switch (event.compliance!.status) {
-        case 'compliant':
+        case "compliant":
           stats.compliant++;
           break;
-        case 'non-compliant':
+        case "non-compliant":
           stats.nonCompliant++;
           break;
-        case 'pending':
+        case "pending":
           stats.pending++;
           break;
       }
     });
-    
+
     return Array.from(complianceByRegulation.values());
   }
 
-  private generateSecurityRecommendations(failedAttempts: AuditEvent[], securityEvents: LogEntry[]): string[] {
+  private generateSecurityRecommendations(
+    failedAttempts: AuditEvent[],
+    securityEvents: LogEntry[],
+  ): string[] {
     const recommendations = [];
-    
+
     if (failedAttempts.length > 100) {
-      recommendations.push('Consider implementing rate limiting or account lockout policies');
+      recommendations.push(
+        "Consider implementing rate limiting or account lockout policies",
+      );
     }
-    
+
     if (securityEvents.length > 50) {
-      recommendations.push('Review security event patterns and consider additional monitoring');
+      recommendations.push(
+        "Review security event patterns and consider additional monitoring",
+      );
     }
-    
-    const highRiskAttempts = failedAttempts.filter(e => (e.riskScore || 0) > 0.7);
+
+    const highRiskAttempts = failedAttempts.filter(
+      (e) => (e.riskScore || 0) > 0.7,
+    );
     if (highRiskAttempts.length > 10) {
-      recommendations.push('Implement additional authentication factors for high-risk scenarios');
+      recommendations.push(
+        "Implement additional authentication factors for high-risk scenarios",
+      );
     }
-    
+
     return recommendations;
   }
 
   private calculateMedian(numbers: number[]): number {
     const sorted = [...numbers].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    return sorted.length % 2 !== 0
+      ? sorted[mid]
+      : (sorted[mid - 1] + sorted[mid]) / 2;
   }
 
   private calculatePercentile(numbers: number[], percentile: number): number {
@@ -816,28 +977,34 @@ export class QISDDLogger extends EventEmitter {
   }
 
   private calculateAverageRiskScore(auditEvents: AuditEvent[]): number {
-    const eventsWithRisk = auditEvents.filter(e => e.riskScore !== undefined);
+    const eventsWithRisk = auditEvents.filter((e) => e.riskScore !== undefined);
     if (eventsWithRisk.length === 0) return 0;
-    
-    return eventsWithRisk.reduce((sum, e) => sum + e.riskScore!, 0) / eventsWithRisk.length;
+
+    return (
+      eventsWithRisk.reduce((sum, e) => sum + e.riskScore!, 0) /
+      eventsWithRisk.length
+    );
   }
 
   private findSlowestOperations(logs: LogEntry[], count: number): any[] {
     return logs
-      .filter(log => log.performance)
+      .filter((log) => log.performance)
       .sort((a, b) => b.performance!.duration - a.performance!.duration)
       .slice(0, count)
-      .map(log => ({
+      .map((log) => ({
         event: log.event,
         duration: log.performance!.duration,
         timestamp: log.timestamp,
-        context: log.context
+        context: log.context,
       }));
   }
 
   private analyzePerformanceTrends(logs: LogEntry[]): any {
     // Implementation for performance trend analysis
-    return { trend: 'stable', analysis: 'Performance metrics within normal ranges' };
+    return {
+      trend: "stable",
+      analysis: "Performance metrics within normal ranges",
+    };
   }
 
   private identifyBottlenecks(logs: LogEntry[]): any[] {
@@ -847,38 +1014,50 @@ export class QISDDLogger extends EventEmitter {
 
   private generatePerformanceRecommendations(logs: LogEntry[]): string[] {
     const recommendations = [];
-    
-    const slowOperations = logs.filter(log => 
-      log.performance && log.performance.duration > 1000
+
+    const slowOperations = logs.filter(
+      (log) => log.performance && log.performance.duration > 1000,
     );
-    
+
     if (slowOperations.length > logs.length * 0.1) {
-      recommendations.push('Consider optimizing slow operations or implementing caching');
+      recommendations.push(
+        "Consider optimizing slow operations or implementing caching",
+      );
     }
-    
+
     return recommendations;
   }
 
   private convertToCSV(logEntries: LogEntry[]): string {
-    const headers = ['timestamp', 'level', 'category', 'event', 'message', 'userId', 'component'];
-    const rows = logEntries.map(entry => [
+    const headers = [
+      "timestamp",
+      "level",
+      "category",
+      "event",
+      "message",
+      "userId",
+      "component",
+    ];
+    const rows = logEntries.map((entry) => [
       entry.timestamp.toISOString(),
       LogLevel[entry.level],
       entry.category,
       entry.event,
       entry.message.replace(/"/g, '""'), // Escape quotes
-      entry.context?.userId || '',
-      entry.context?.component || ''
+      entry.context?.userId || "",
+      entry.context?.component || "",
     ]);
-    
-    return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
   }
 
   // Expose auditLogger methods
   public getAuditTrail(filter?: Partial<AuditEvent>): AuditEvent[] {
     return this.auditLogger.getEvents(filter);
   }
-  public exportAuditTrail(format: 'json' | 'csv' = 'json'): string {
+  public exportAuditTrail(format: "json" | "csv" = "json"): string {
     return this.auditLogger.export(format);
   }
   public verifyAuditTrail(): boolean {
@@ -921,7 +1100,7 @@ export interface AuditFilter {
   userId?: string;
   action?: string;
   resource?: string;
-  result?: 'success' | 'failure' | 'partial';
+  result?: "success" | "failure" | "partial";
   startTime?: Date;
   endTime?: Date;
   riskScoreMin?: number;
@@ -964,32 +1143,38 @@ export interface PerformanceReport {
 
 // Factory for creating pre-configured loggers
 export class LoggerFactory {
-  public static createQuantumLogger(config?: Partial<LoggerConfig>): QISDDLogger {
+  public static createQuantumLogger(
+    config?: Partial<LoggerConfig>,
+  ): QISDDLogger {
     return new QISDDLogger({
       level: LogLevel.DEBUG,
       enableCorrelation: true,
       enableMetrics: true,
-      ...config
+      ...config,
     });
   }
 
-  public static createProductionLogger(config?: Partial<LoggerConfig>): QISDDLogger {
+  public static createProductionLogger(
+    config?: Partial<LoggerConfig>,
+  ): QISDDLogger {
     return new QISDDLogger({
       level: LogLevel.INFO,
       enableConsole: false,
       enableFile: true,
       enableStructured: true,
-      ...config
+      ...config,
     });
   }
 
-  public static createSecurityLogger(config?: Partial<LoggerConfig>): QISDDLogger {
+  public static createSecurityLogger(
+    config?: Partial<LoggerConfig>,
+  ): QISDDLogger {
     return new QISDDLogger({
       level: LogLevel.WARN,
       sensitiveDataMasking: true,
       encryptionEnabled: true,
       retentionDays: 365, // Keep security logs longer
-      ...config
+      ...config,
     });
   }
 }

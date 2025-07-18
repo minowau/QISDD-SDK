@@ -1,11 +1,11 @@
 // QISDD-SDK Quantum: Entanglement Implementation
 
-import { QuantumStateType } from './observer-effect';
+import { QuantumStateType } from "./observer-effect";
 
 export type EntanglementLink = {
   targetId: string;
   strength: number; // 0.0 to 1.0
-  type: 'symmetric' | 'asymmetric';
+  type: "symmetric" | "asymmetric";
   createdAt: Date;
 };
 
@@ -27,7 +27,14 @@ export class Entanglement {
   }
 
   // Propagate a state change to all entangled data
-  public propagateStateChange(state: QuantumStateType, propagateFn: (targetId: string, state: QuantumStateType, strength: number) => void): void {
+  public propagateStateChange(
+    state: QuantumStateType,
+    propagateFn: (
+      targetId: string,
+      state: QuantumStateType,
+      strength: number,
+    ) => void,
+  ): void {
     for (const link of this.links) {
       // For symmetric, propagate both ways; for asymmetric, only one way
       propagateFn(link.targetId, state, link.strength);
@@ -36,7 +43,7 @@ export class Entanglement {
 
   // Update entanglement strength
   public updateStrength(targetId: string, newStrength: number): void {
-    const link = this.links.find(l => l.targetId === targetId);
+    const link = this.links.find((l) => l.targetId === targetId);
     if (link) {
       link.strength = newStrength;
     }
@@ -44,6 +51,6 @@ export class Entanglement {
 
   // Remove a link (e.g., on data erasure)
   public removeLink(targetId: string): void {
-    this.links = this.links.filter(link => link.targetId !== targetId);
+    this.links = this.links.filter((link) => link.targetId !== targetId);
   }
-} 
+}

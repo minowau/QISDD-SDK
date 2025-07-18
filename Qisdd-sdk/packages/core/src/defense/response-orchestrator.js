@@ -10,15 +10,15 @@ var ResponseOrchestrator = /** @class */ (function () {
     // Orchestrate a response to a detected threat
     ResponseOrchestrator.prototype.orchestrateResponse = function (event) {
         // Simple coordination logic based on event type
-        var response = 'none';
-        if (event.type === 'unauthorized_access') {
-            response = 'poison_data';
+        var response = "none";
+        if (event.type === "unauthorized_access") {
+            response = "poison_data";
         }
-        else if (event.type === 'anomaly_detected') {
-            response = 'degrade_state';
+        else if (event.type === "anomaly_detected") {
+            response = "degrade_state";
         }
-        else if (event.type === 'threshold_exceeded') {
-            response = 'collapse_data';
+        else if (event.type === "threshold_exceeded") {
+            response = "collapse_data";
         }
         this.responses.push({ event: event, response: response, timestamp: Date.now() });
         return response;

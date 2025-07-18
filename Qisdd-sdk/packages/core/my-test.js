@@ -80,12 +80,12 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QISDDFactory = exports.QISDDIntegratedClient = void 0;
 exports.demonstrateQISDDUsage = demonstrateQISDDUsage;
-var superposition_1 = require("./quantum/superposition");
-var observer_effect_1 = require("./quantum/observer-effect");
-var measurement_1 = require("./quantum/measurement");
-var entanglement_1 = require("./quantum/entanglement");
-var logging_1 = require("./logging");
-var crypto_1 = require("./crypto");
+var superposition_1 = require("./src/quantum/superposition");
+var observer_effect_1 = require("./src/quantum/observer-effect");
+var measurement_1 = require("./src/quantum/measurement");
+var entanglement_1 = require("./src/quantum/entanglement");
+var logging_1 = require("./src/logging");
+var crypto_1 = require("./src/crypto");
 var events_1 = require("events");
 var crypto_2 = require("crypto");
 // Main QISDD Client with Complete Integration
@@ -888,11 +888,19 @@ function demonstrateQISDDUsage() {
                 case 2:
                     _a.trys.push([2, 9, 10, 12]);
                     sensitiveData = {
-                        accountNumber: '1234567890',
-                        balance: 50000,
+                        customerId: 'CUST-2024-001',
+                        accountNumber: '4532-1234-5678-9012',
+                        balance: 75430.50,
+                        creditScore: 785,
+                        transactions: [
+                            { id: 'TXN-001', amount: 2500, type: 'deposit', date: '2024-01-15' },
+                            { id: 'TXN-002', amount: -850, type: 'withdrawal', date: '2024-01-16' }
+                        ],
                         personalInfo: {
-                            name: 'John Doe',
-                            ssn: '123-45-6789'
+                            name: 'Alice Johnson',
+                            ssn: '987-65-4321',
+                            dateOfBirth: '1985-03-22',
+                            address: '123 Secure St, Privacy City, PC 12345'
                         }
                     };
                     console.log('🔐 Protecting sensitive financial data...');
@@ -986,9 +994,9 @@ function demonstrateQISDDUsage() {
     });
 }
 // Export everything
-__exportStar(require("./quantum/superposition"), exports);
-__exportStar(require("./quantum/observer-effect"), exports);
-__exportStar(require("./quantum/measurement"), exports);
-__exportStar(require("./quantum/entanglement"), exports);
-__exportStar(require("./logging"), exports);
-__exportStar(require("./crypto"), exports);
+__exportStar(require("./src/quantum/superposition"), exports);
+__exportStar(require("./src/quantum/observer-effect"), exports);
+__exportStar(require("./src/quantum/measurement"), exports);
+__exportStar(require("./src/quantum/entanglement"), exports);
+__exportStar(require("./src/logging"), exports);
+__exportStar(require("./src/crypto"), exports);

@@ -10,7 +10,11 @@ export class Honeypot {
   // Generate honeypot data (fake data for attackers)
   public generate(dataType: string): any {
     // Simple fake data generator
-    return { fake: true, type: dataType, bait: Math.random().toString(36).slice(2) };
+    return {
+      fake: true,
+      type: dataType,
+      bait: Math.random().toString(36).slice(2),
+    };
   }
 
   // Serve honeypot data to unauthorized users
@@ -19,4 +23,4 @@ export class Honeypot {
     this.served.push(honeypot);
     return { ...honeypot, served: true };
   }
-} 
+}

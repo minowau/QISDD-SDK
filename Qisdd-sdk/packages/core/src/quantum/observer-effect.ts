@@ -1,16 +1,16 @@
 // QISDD-SDK Quantum: Observer Effect Implementation
 
 export enum QuantumStateType {
-  Healthy = 'healthy',
-  Poisoned = 'poisoned',
-  Degraded = 'degraded',
-  Collapsed = 'collapsed',
+  Healthy = "healthy",
+  Poisoned = "poisoned",
+  Degraded = "degraded",
+  Collapsed = "collapsed",
 }
 
 export enum TransformationType {
-  LightPoison = 'light_poison',
-  ProgressivePoison = 'progressive_poison',
-  QuantumCollapse = 'quantum_collapse',
+  LightPoison = "light_poison",
+  ProgressivePoison = "progressive_poison",
+  QuantumCollapse = "quantum_collapse",
 }
 
 export interface ObserverEffectResult {
@@ -30,7 +30,10 @@ export class ObserverEffect {
   }
 
   // Triggered on unauthorized access
-  public onUnauthorizedAccess(dataId: string, context: any): ObserverEffectResult {
+  public onUnauthorizedAccess(
+    dataId: string,
+    context: any,
+  ): ObserverEffectResult {
     this.unauthorizedAttempts++;
     if (this.unauthorizedAttempts >= this.threshold) {
       this.state = QuantumStateType.Collapsed;
@@ -38,7 +41,7 @@ export class ObserverEffect {
         stateChanged: true,
         newState: this.state,
         transformation: TransformationType.QuantumCollapse,
-        reason: 'Threshold exceeded: quantum collapse triggered',
+        reason: "Threshold exceeded: quantum collapse triggered",
       };
     } else {
       this.state = QuantumStateType.Poisoned;
@@ -46,30 +49,36 @@ export class ObserverEffect {
         stateChanged: true,
         newState: this.state,
         transformation: TransformationType.LightPoison,
-        reason: 'Unauthorized access detected: data poisoned',
+        reason: "Unauthorized access detected: data poisoned",
       };
     }
   }
 
   // Triggered on suspicious pattern
-  public onSuspiciousPattern(dataId: string, pattern: any): ObserverEffectResult {
+  public onSuspiciousPattern(
+    dataId: string,
+    pattern: any,
+  ): ObserverEffectResult {
     this.state = QuantumStateType.Degraded;
     return {
       stateChanged: true,
       newState: this.state,
       transformation: TransformationType.ProgressivePoison,
-      reason: 'Suspicious pattern detected: progressive degradation',
+      reason: "Suspicious pattern detected: progressive degradation",
     };
   }
 
   // Triggered when threshold is exceeded
-  public onThresholdExceeded(dataId: string, metrics: any): ObserverEffectResult {
+  public onThresholdExceeded(
+    dataId: string,
+    metrics: any,
+  ): ObserverEffectResult {
     this.state = QuantumStateType.Collapsed;
     return {
       stateChanged: true,
       newState: this.state,
       transformation: TransformationType.QuantumCollapse,
-      reason: 'Threshold exceeded: quantum collapse',
+      reason: "Threshold exceeded: quantum collapse",
     };
   }
 
@@ -83,4 +92,4 @@ export class ObserverEffect {
     this.state = QuantumStateType.Healthy;
     this.unauthorizedAttempts = 0;
   }
-} 
+}

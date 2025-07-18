@@ -41,15 +41,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var complete_integration_example_1 = require("../src/complete-integration-example");
 function runBasicTest() {
     return __awaiter(this, void 0, void 0, function () {
-        var client, testData, protection, authorized, unauthorized, metrics, error_1;
+        var client, testData, protection, authorized, unauthorized, auditTrail, metrics;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     console.log('🚀 Starting QISDD Quantum Superposition Test\n');
                     client = complete_integration_example_1.QISDDFactory.createDevelopmentClient();
-                    _a.label = 1;
+                    // Wait for initialization
+                    return [4 /*yield*/, client.waitForInitialization()];
                 case 1:
-                    _a.trys.push([1, 5, 6, 8]);
+                    // Wait for initialization
+                    _a.sent();
+                    _a.label = 2;
+                case 2:
+                    _a.trys.push([2, , 6, 7]);
                     testData = {
                         message: 'Hello Quantum World!',
                         secret: 'classified-123',
@@ -57,7 +62,7 @@ function runBasicTest() {
                     };
                     console.log('1️⃣ Protecting data with quantum superposition...');
                     return [4 /*yield*/, client.protectData(testData)];
-                case 2:
+                case 3:
                     protection = _a.sent();
                     console.log("   \u2705 Protected with ID: ".concat(protection.id));
                     console.log("   \uD83D\uDD22 Quantum states: ".concat(protection.statesCreated));
@@ -67,7 +72,7 @@ function runBasicTest() {
                             token: 'valid-token',
                             userReputation: 0.9
                         })];
-                case 3:
+                case 4:
                     authorized = _a.sent();
                     console.log("   \u2705 Success: ".concat(authorized.success));
                     console.log("   \uD83D\uDCCA Trust: ".concat(authorized.trustScore));
@@ -77,28 +82,23 @@ function runBasicTest() {
                             token: 'fake-token',
                             userReputation: 0.1
                         })];
-                case 4:
+                case 5:
                     unauthorized = _a.sent();
                     console.log("   \uD83D\uDEE1\uFE0F Blocked: ".concat(!unauthorized.success));
                     console.log("   \u26A0\uFE0F Poisoned: ".concat(!!unauthorized.data._qisdd_warning));
+                    // Test audit trail
+                    console.log('\n4️⃣ Querying audit trail...');
+                    auditTrail = client.getAuditTrail({ resourceId: protection.id });
+                    console.log('   📝 Audit events:', auditTrail);
                     console.log('\n📊 Final Metrics:');
                     metrics = client.getMetrics();
-                    console.log("   Protected: ".concat(metrics.totalDataProtected));
-                    console.log("   Unauthorized: ".concat(metrics.unauthorizedAttempts));
-                    console.log("   Health: ".concat(metrics.systemHealth.overall));
-                    return [3 /*break*/, 8];
-                case 5:
-                    error_1 = _a.sent();
-                    console.error('❌ Error:', error_1);
-                    return [3 /*break*/, 8];
-                case 6: return [4 /*yield*/, client.destroy()];
-                case 7:
-                    _a.sent();
-                    console.log('\n✅ Test completed!');
-                    return [7 /*endfinally*/];
-                case 8: return [2 /*return*/];
+                    console.log(JSON.stringify(metrics, null, 2));
+                    return [3 /*break*/, 7];
+                case 6: return [7 /*endfinally*/];
+                case 7: return [2 /*return*/];
             }
         });
     });
 }
-runBasicTest();
+// Run the test
+runBasicTest().catch(console.error);

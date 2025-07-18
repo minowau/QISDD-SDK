@@ -31,7 +31,7 @@ var ObserverEffect = /** @class */ (function () {
                 stateChanged: true,
                 newState: this.state,
                 transformation: TransformationType.QuantumCollapse,
-                reason: 'Threshold exceeded: quantum collapse triggered',
+                reason: "Threshold exceeded: quantum collapse triggered",
             };
         }
         else {
@@ -40,7 +40,7 @@ var ObserverEffect = /** @class */ (function () {
                 stateChanged: true,
                 newState: this.state,
                 transformation: TransformationType.LightPoison,
-                reason: 'Unauthorized access detected: data poisoned',
+                reason: "Unauthorized access detected: data poisoned",
             };
         }
     };
@@ -51,7 +51,7 @@ var ObserverEffect = /** @class */ (function () {
             stateChanged: true,
             newState: this.state,
             transformation: TransformationType.ProgressivePoison,
-            reason: 'Suspicious pattern detected: progressive degradation',
+            reason: "Suspicious pattern detected: progressive degradation",
         };
     };
     // Triggered when threshold is exceeded
@@ -61,7 +61,7 @@ var ObserverEffect = /** @class */ (function () {
             stateChanged: true,
             newState: this.state,
             transformation: TransformationType.QuantumCollapse,
-            reason: 'Threshold exceeded: quantum collapse',
+            reason: "Threshold exceeded: quantum collapse",
         };
     };
     // Get current state

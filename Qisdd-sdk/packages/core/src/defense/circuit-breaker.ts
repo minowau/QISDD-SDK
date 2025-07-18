@@ -17,4 +17,4 @@ export class CircuitBreaker {
   public isBroken(dataId: string): boolean {
     return this.brokenCircuits.has(dataId);
   }
-} 
+}

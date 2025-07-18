@@ -34,7 +34,7 @@ const MOCK_EVENTS: BlockchainEvent[] = [
   },
 ];
 
-const WS_URL = process.env.REACT_APP_EVENTS_WS_URL || 'wss://api.qisdd.io/v1/events';
+const WS_URL = process.env.REACT_APP_EVENTS_WS_URL || 'ws://localhost:3000/api/events';
 
 export function BlockchainEventStream() {
   const [events, setEvents] = useState<BlockchainEvent[]>([]);

@@ -20,13 +20,13 @@ var DataPoisoning = /** @class */ (function () {
     }
     // Apply light poisoning (minor data modification)
     DataPoisoning.prototype.applyLightPoison = function (data, dataId) {
-        this.poisoningStates[dataId] = 'light';
-        return __assign(__assign({}, data), { poisoned: true, level: 'light' });
+        this.poisoningStates[dataId] = "light";
+        return __assign(__assign({}, data), { poisoned: true, level: "light" });
     };
     // Apply heavy poisoning (major data modification)
     DataPoisoning.prototype.applyHeavyPoison = function (data, dataId) {
-        this.poisoningStates[dataId] = 'heavy';
-        return __assign(__assign({}, data), { poisoned: true, level: 'heavy' });
+        this.poisoningStates[dataId] = "heavy";
+        return __assign(__assign({}, data), { poisoned: true, level: "heavy" });
     };
     // Track poisoning state
     DataPoisoning.prototype.getPoisoningState = function (dataId) {

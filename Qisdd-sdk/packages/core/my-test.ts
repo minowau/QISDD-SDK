@@ -1,24 +1,24 @@
 // QISDD-SDK Complete Integration Example
 // This file shows how all components work together
 
-import { QuantumSuperposition, SuperpositionFactory, QuantumState, QuantumStateType } from './quantum/superposition';
-import { ObserverEffect } from './quantum/observer-effect';
-import { Measurement } from './quantum/measurement';
-import { Entanglement } from './quantum/entanglement';
-import { QISDDLogger, LoggerFactory, LogLevel, LogCategory, AuditEvent } from './logging';
-import { CryptoSuite } from './crypto';
+import { QuantumSuperposition, SuperpositionFactory, QuantumState, QuantumStateType } from './src/quantum/superposition';
+import { ObserverEffect } from './src/quantum/observer-effect';
+import { Measurement } from './src/quantum/measurement';
+import { Entanglement } from './src/quantum/entanglement';
+import { QISDDLogger, LoggerFactory, LogLevel, LogCategory, AuditEvent } from './src/logging';
+import { CryptoSuite } from './src/crypto';
 import { EventEmitter } from 'events';
 import { randomBytes } from 'crypto';
 
 // Main QISDD Client with Complete Integration
 export class QISDDIntegratedClient extends EventEmitter {
-  private cryptoSuite!: CryptoSuite;
-  private logger!: QISDDLogger;
+  private cryptoSuite: CryptoSuite;
+  private logger: QISDDLogger;
   private superpositions: Map<string, QuantumSuperposition> = new Map();
-  private observer!: ObserverEffect;
-  private measurement!: Measurement;
-  private entanglement!: Entanglement;
-  private metrics!: ClientMetrics;
+  private observer: ObserverEffect;
+  private measurement: Measurement;
+  private entanglement: Entanglement;
+  private metrics: ClientMetrics;
   private config: QISDDConfig;
   private _initialized: boolean = false;
 
@@ -1008,11 +1008,19 @@ export async function demonstrateQISDDUsage(): Promise<void> {
   try {
     // Protect sensitive data
     const sensitiveData = {
-      accountNumber: '1234567890',
-      balance: 50000,
+      customerId: 'CUST-2024-001',
+      accountNumber: '4532-1234-5678-9012',
+      balance: 75430.50,
+      creditScore: 785,
+      transactions: [
+        { id: 'TXN-001', amount: 2500, type: 'deposit', date: '2024-01-15' },
+        { id: 'TXN-002', amount: -850, type: 'withdrawal', date: '2024-01-16' }
+      ],
       personalInfo: {
-        name: 'John Doe',
-        ssn: '123-45-6789'
+        name: 'Alice Johnson',
+        ssn: '987-65-4321',
+        dateOfBirth: '1985-03-22',
+        address: '123 Secure St, Privacy City, PC 12345'
       }
     };
 
@@ -1104,9 +1112,9 @@ export async function demonstrateQISDDUsage(): Promise<void> {
 }
 
 // Export everything
-export * from './quantum/superposition';
-export * from './quantum/observer-effect';
-export * from './quantum/measurement';
-export * from './quantum/entanglement';
-export * from './logging';
-export * from './crypto';
+export * from './src/quantum/superposition';
+export * from './src/quantum/observer-effect';
+export * from './src/quantum/measurement';
+export * from './src/quantum/entanglement';
+export * from './src/logging';
+export * from './src/crypto';

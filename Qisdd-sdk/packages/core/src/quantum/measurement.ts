@@ -1,7 +1,7 @@
 // QISDD-SDK Quantum: Measurement (Collapse) Implementation
 
-import { QuantumStateType } from './observer-effect';
-import { QuantumState, Superposition } from './superposition';
+import { QuantumStateType } from "./observer-effect";
+import { QuantumState, Superposition } from "./superposition";
 
 export type MeasurementResult = {
   collapsed: boolean;
@@ -15,7 +15,10 @@ export class Measurement {
   }
 
   // Collapse all states in a superposition to a single collapsed state
-  public collapse(superposition: Superposition, trigger: string): MeasurementResult {
+  public collapse(
+    superposition: Superposition,
+    trigger: string,
+  ): MeasurementResult {
     superposition.collapseAll();
     return {
       collapsed: true,
@@ -33,4 +36,4 @@ export class Measurement {
     }
     return null;
   }
-} 
+}
