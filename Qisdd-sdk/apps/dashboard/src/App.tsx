@@ -1,14 +1,10 @@
 // QISDD Dashboard: App Entry Point
 
-import React from 'react';
-import { BlockchainEventStream } from './components/BlockchainEventStream';
+import WorkingQISDDDashboard from './components/WorkingQISDDDashboard';
 
 function App() {
   return (
-    <div>
-      <BlockchainEventStream />
-      <div>QISDD Dashboard - Coming Soon</div>
-    </div>
+    <WorkingQISDDDashboard />
   );
 }
 

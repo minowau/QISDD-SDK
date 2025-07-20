@@ -3,7 +3,6 @@ export class Cache {
   [x: string]: any;
   private timeouts: Map<string, NodeJS.Timeout> = new Map();
 
-
   constructor(config: any) {
     // Initialize cache (Redis, in-memory, etc.)
   }
@@ -32,10 +31,8 @@ export class Cache {
     if (this.timeouts.has(key)) {
       clearTimeout(this.timeouts.get(key));
       this.timeouts.delete(key);
-    }
-    else{
+    } else {
       this.console.error("has not deleted yet");
-      
     }
   }
-} 
+}

@@ -48,7 +48,7 @@ var IPFSAdapter = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             var cid;
             return __generator(this, function (_a) {
-                cid = 'ipfs://' + Math.random().toString(36).slice(2);
+                cid = "ipfs://" + Math.random().toString(36).slice(2);
                 this.storage.set(cid, Buffer.isBuffer(data) ? data : Buffer.from(data));
                 return [2 /*return*/, cid];
             });
@@ -58,7 +58,7 @@ var IPFSAdapter = /** @class */ (function () {
     IPFSAdapter.prototype.retrieve = function (cid) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, this.storage.get(cid) || Buffer.from('')];
+                return [2 /*return*/, this.storage.get(cid) || Buffer.from("")];
             });
         });
     };

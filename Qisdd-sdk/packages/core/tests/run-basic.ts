@@ -6,6 +6,9 @@ async function runBasicTest() {
   console.log('🚀 Starting QISDD Quantum Superposition Test\n');
 
   const client = QISDDFactory.createDevelopmentClient();
+  
+  // Wait for initialization
+  await client.waitForInitialization();
 
   try {
     // Test data
@@ -40,9 +43,17 @@ async function runBasicTest() {
 
     // Test audit trail
     console.log('\n4️⃣ Querying audit trail...');
-    const auditTrail = client.logger.getAuditTrail({ resourceId: protection.id });
+    const auditTrail = client.getAuditTrail({ resourceId: protection.id });
     console.log('   📝 Audit events:', auditTrail);
 
     console.log('\n📊 Final Metrics:');
     const metrics = client.getMetrics();
-    console.log(`
+    console.log(JSON.stringify(metrics, null, 2));
+
+  } finally {
+    // Cleanup if needed
+  }
+}
+
+// Run the test
+runBasicTest().catch(console.error);

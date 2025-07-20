@@ -95,6 +95,7 @@ var QISDDIntegratedClient = /** @class */ (function (_super) {
         if (config === void 0) { config = {}; }
         var _this = _super.call(this) || this;
         _this.superpositions = new Map();
+        _this._initialized = false;
         _this.config = __assign({ enableCrypto: true, enableLogging: true, enableAuditing: true, enableBlockchain: false, superpositionConfig: {
                 stateCount: 3,
                 coherenceTimeMs: 300000,
@@ -126,23 +127,67 @@ var QISDDIntegratedClient = /** @class */ (function (_super) {
                 sensitiveDataMasking: true,
                 enableCorrelation: true
             } }, config);
-        _this.initializeComponents();
-        _this.setupEventHandlers();
-        _this.initializeMetrics();
+        _this.initializeAsync();
         return _this;
     }
+    /**
+     * Wait for client initialization to complete
+     */
+    QISDDIntegratedClient.prototype.waitForInitialization = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!!this._initialized) return [3 /*break*/, 2];
+                        return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 10); })];
+                    case 1:
+                        _a.sent();
+                        return [3 /*break*/, 0];
+                    case 2: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    QISDDIntegratedClient.prototype.initializeAsync = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.initializeComponents()];
+                    case 1:
+                        _a.sent();
+                        this.setupEventHandlers();
+                        this.initializeMetrics();
+                        this._initialized = true;
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
     QISDDIntegratedClient.prototype.initializeComponents = function () {
-        // Initialize logger first
-        this.logger = logging_1.LoggerFactory.createQuantumLogger(this.config.loggerConfig);
-        // Initialize crypto suite
-        this.cryptoSuite = new crypto_1.CryptoSuite(this.config.cryptoConfig);
-        // Initialize quantum components
-        this.observer = new observer_effect_1.ObserverEffect(3); // 3 unauthorized attempts threshold
-        this.measurement = new measurement_1.Measurement();
-        this.entanglement = new entanglement_1.Entanglement();
-        this.logger.info('QISDD Integrated Client initialized', {
-            config: this.config,
-            components: ['crypto', 'quantum', 'logging', 'auditing']
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        // Initialize logger first
+                        this.logger = logging_1.LoggerFactory.createQuantumLogger(this.config.loggerConfig);
+                        // Initialize crypto suite
+                        this.cryptoSuite = new crypto_1.CryptoSuite(this.config.cryptoConfig);
+                        // Wait for crypto initialization
+                        return [4 /*yield*/, this.cryptoSuite.waitForInitialization()];
+                    case 1:
+                        // Wait for crypto initialization
+                        _a.sent();
+                        // Initialize quantum components
+                        this.observer = new observer_effect_1.ObserverEffect(3); // 3 unauthorized attempts threshold
+                        this.measurement = new measurement_1.Measurement();
+                        this.entanglement = new entanglement_1.Entanglement();
+                        this.logger.info('QISDD Integrated Client initialized', {
+                            config: this.config,
+                            components: ['crypto', 'quantum', 'logging', 'auditing']
+                        });
+                        return [2 /*return*/];
+                }
+            });
         });
     };
     QISDDIntegratedClient.prototype.setupEventHandlers = function () {
@@ -603,6 +648,12 @@ var QISDDIntegratedClient = /** @class */ (function (_super) {
         });
     };
     /**
+     * Get audit trail events
+     */
+    QISDDIntegratedClient.prototype.getAuditTrail = function (filter) {
+        return this.logger.getAuditTrail(filter);
+    };
+    /**
      * Cleanup and destroy client
      */
     QISDDIntegratedClient.prototype.destroy = function () {
@@ -828,9 +879,14 @@ function demonstrateQISDDUsage() {
                 case 0:
                     console.log('🚀 Starting QISDD-SDK Complete Integration Demo');
                     client = QISDDFactory.createDevelopmentClient();
-                    _a.label = 1;
+                    // Wait for initialization
+                    return [4 /*yield*/, client.waitForInitialization()];
                 case 1:
-                    _a.trys.push([1, 8, 9, 11]);
+                    // Wait for initialization
+                    _a.sent();
+                    _a.label = 2;
+                case 2:
+                    _a.trys.push([2, 9, 10, 12]);
                     sensitiveData = {
                         accountNumber: '1234567890',
                         balance: 50000,
@@ -848,7 +904,7 @@ function demonstrateQISDDUsage() {
                                 timeBasedAccess: true
                             }
                         })];
-                case 2:
+                case 3:
                     protectionResult = _a.sent();
                     console.log("\u2705 Data protected with ID: ".concat(protectionResult.id));
                     console.log("\uD83D\uDCCA States created: ".concat(protectionResult.statesCreated));
@@ -865,7 +921,7 @@ function demonstrateQISDDUsage() {
                             timeOfAccess: new Date(),
                             recentAccessCount: 2
                         })];
-                case 3:
+                case 4:
                     authorizedResult = _a.sent();
                     if (authorizedResult.success) {
                         console.log('✅ Authorized access successful');
@@ -883,7 +939,7 @@ function demonstrateQISDDUsage() {
                             userAgent: 'bot/1.0',
                             recentFailures: 5
                         })];
-                case 4:
+                case 5:
                     unauthorizedResult = _a.sent();
                     if (!unauthorizedResult.success) {
                         console.log('🛡️  Unauthorized access blocked');
@@ -893,10 +949,10 @@ function demonstrateQISDDUsage() {
                     console.log('\n🧮 Performing homomorphic computation...');
                     data2 = { value: 1000 };
                     return [4 /*yield*/, client.protectData(data2)];
-                case 5:
+                case 6:
                     protection2 = _a.sent();
                     return [4 /*yield*/, client.computeOnProtectedData('add', [protectionResult.id, protection2.id])];
-                case 6:
+                case 7:
                     computationResult = _a.sent();
                     console.log("\uD83D\uDD2C Computation completed: ".concat(computationResult.resultId));
                     // Generate reports
@@ -905,7 +961,7 @@ function demonstrateQISDDUsage() {
                             start: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
                             end: new Date()
                         })];
-                case 7:
+                case 8:
                     securityReport = _a.sent();
                     console.log('🔒 Security summary:', securityReport.summary);
                     metrics = client.getMetrics();
@@ -914,17 +970,17 @@ function demonstrateQISDDUsage() {
                     console.log("- Observations: ".concat(metrics.totalObservations));
                     console.log("- Unauthorized attempts: ".concat(metrics.unauthorizedAttempts));
                     console.log("- System health: ".concat(metrics.systemHealth.overall));
-                    return [3 /*break*/, 11];
-                case 8:
+                    return [3 /*break*/, 12];
+                case 9:
                     error_4 = _a.sent();
                     console.error('❌ Demo failed:', error_4);
-                    return [3 /*break*/, 11];
-                case 9: return [4 /*yield*/, client.destroy()];
-                case 10:
+                    return [3 /*break*/, 12];
+                case 10: return [4 /*yield*/, client.destroy()];
+                case 11:
                     _a.sent();
                     console.log('\n🏁 QISDD-SDK Demo completed');
                     return [7 /*endfinally*/];
-                case 11: return [2 /*return*/];
+                case 12: return [2 /*return*/];
             }
         });
     });

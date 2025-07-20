@@ -1,9 +1,9 @@
 // QISDD-SDK Quantum: Enhanced Superposition Implementation with Logging & Auditing
 // packages/core/src/quantum/superposition.ts
 
-import { EventEmitter } from 'events';
-import { randomBytes, createHash } from 'crypto';
-import { QuantumStateType, TransformationType } from './observer-effect';
+import { EventEmitter } from "events";
+import { randomBytes, createHash } from "crypto";
+import { QuantumStateType, TransformationType } from "./observer-effect";
 
 // Enhanced Types for Complete Implementation
 export interface QuantumState {
@@ -26,7 +26,7 @@ export interface QuantumState {
 
 export interface QuantumStateMetadata {
   originalDataHash: string;
-  encryptionAlgorithm: 'SEAL' | 'CKKS' | 'BGV';
+  encryptionAlgorithm: "SEAL" | "CKKS" | "BGV";
   keyId: string;
   sizeBytes: number;
   compressionRatio?: number;
@@ -39,7 +39,7 @@ export interface QuantumStateMetadata {
 export interface EntanglementReference {
   targetStateId: string;
   strength: number; // 0.0 to 1.0
-  type: 'symmetric' | 'asymmetric' | 'bidirectional';
+  type: "symmetric" | "asymmetric" | "bidirectional";
   correlationFunction: string;
   createdAt: Date;
 }
@@ -51,7 +51,7 @@ export interface SuperpositionConfig {
   degradationThreshold: number;
   autoRotationInterval: number;
   enableEntanglement: boolean;
-  auditLevel: 'basic' | 'detailed' | 'forensic';
+  auditLevel: "basic" | "detailed" | "forensic";
   compressionEnabled: boolean;
 }
 
@@ -61,7 +61,7 @@ export interface SuperpositionAuditLog {
   event: string;
   stateId?: string;
   details: any;
-  severity: 'info' | 'warning' | 'error' | 'critical';
+  severity: "info" | "warning" | "error" | "critical";
   context?: any;
   stackTrace?: string;
 }
@@ -104,14 +104,14 @@ export class QuantumSuperposition extends EventEmitter {
 
   constructor(
     initialStates: QuantumState[],
-    config: Partial<SuperpositionConfig> = {}
+    config: Partial<SuperpositionConfig> = {},
   ) {
     super();
-    
+
     this.superpositionId = this.generateId();
     this.createdAt = new Date();
     this.lastRotation = new Date();
-    
+
     // Default configuration
     this.config = {
       stateCount: 3,
@@ -120,26 +120,30 @@ export class QuantumSuperposition extends EventEmitter {
       degradationThreshold: 0.8,
       autoRotationInterval: 60000, // 1 minute
       enableEntanglement: true,
-      auditLevel: 'detailed',
+      auditLevel: "detailed",
       compressionEnabled: true,
-      ...config
+      ...config,
     };
 
     this.initializeStates(initialStates);
     this.setupAutoRotation();
     this.setupCoherenceMonitoring();
-    
-    this.log('superposition_created', {
-      superpositionId: this.superpositionId,
-      stateCount: this.states.size,
-      config: this.config
-    }, 'info');
+
+    this.log(
+      "superposition_created",
+      {
+        superpositionId: this.superpositionId,
+        stateCount: this.states.size,
+        config: this.config,
+      },
+      "info",
+    );
   }
 
   // Initialize quantum states with validation and setup
   private initializeStates(initialStates: QuantumState[]): void {
     if (initialStates.length === 0) {
-      throw new Error('Superposition must have at least one quantum state');
+      throw new Error("Superposition must have at least one quantum state");
     }
 
     initialStates.forEach((state, index) => {
@@ -153,45 +157,49 @@ export class QuantumSuperposition extends EventEmitter {
         entanglements: state.entanglements || [],
         metadata: {
           originalDataHash: this.calculateHash(state.ciphertext),
-          encryptionAlgorithm: 'SEAL',
-          keyId: 'default',
+          encryptionAlgorithm: "SEAL",
+          keyId: "default",
           sizeBytes: state.ciphertext.length,
           noiseLevel: 0,
           operationsCount: 0,
           maxOperations: 100,
           coherenceTime: this.config.coherenceTimeMs,
-          ...state.metadata
-        }
+          ...state.metadata,
+        },
       };
 
       this.states.set(enhancedState.id, enhancedState);
-      
+
       if (index === 0 || enhancedState.active) {
         this.setActiveState(enhancedState.id);
       }
     });
 
-    this.log('states_initialized', {
-      count: this.states.size,
-      activeStateId: this.activeStateId
-    }, 'info');
+    this.log(
+      "states_initialized",
+      {
+        count: this.states.size,
+        activeStateId: this.activeStateId,
+      },
+      "info",
+    );
   }
 
   // Enhanced state rotation with logging and validation
   public rotateState(): QuantumState | null {
     if (this.isCollapsed) {
-      this.log('rotation_blocked_collapsed', {}, 'warning');
+      this.log("rotation_blocked_collapsed", {}, "warning");
       return null;
     }
 
     const stateIds = Array.from(this.states.keys());
     if (stateIds.length === 0) {
-      this.log('rotation_failed_no_states', {}, 'error');
+      this.log("rotation_failed_no_states", {}, "error");
       return null;
     }
 
-    const currentIndex = this.activeStateId 
-      ? stateIds.indexOf(this.activeStateId) 
+    const currentIndex = this.activeStateId
+      ? stateIds.indexOf(this.activeStateId)
       : -1;
     const nextIndex = (currentIndex + 1) % stateIds.length;
     const nextStateId = stateIds[nextIndex];
@@ -201,18 +209,22 @@ export class QuantumSuperposition extends EventEmitter {
     this.lastRotation = new Date();
 
     const newState = this.states.get(nextStateId)!;
-    
-    this.log('state_rotated', {
-      fromStateId: previousStateId,
-      toStateId: nextStateId,
-      rotationIndex: nextIndex,
-      timestamp: this.lastRotation
-    }, 'info');
 
-    this.emit('stateRotated', {
+    this.log(
+      "state_rotated",
+      {
+        fromStateId: previousStateId,
+        toStateId: nextStateId,
+        rotationIndex: nextIndex,
+        timestamp: this.lastRotation,
+      },
+      "info",
+    );
+
+    this.emit("stateRotated", {
       previousStateId,
       newStateId: nextStateId,
-      state: newState
+      state: newState,
     });
 
     return newState;
@@ -221,7 +233,7 @@ export class QuantumSuperposition extends EventEmitter {
   // Context-aware state selection with enhanced logic
   public selectStateByContext(context: any): QuantumState | null {
     if (this.isCollapsed) {
-      this.log('selection_blocked_collapsed', { context }, 'warning');
+      this.log("selection_blocked_collapsed", { context }, "warning");
       return null;
     }
 
@@ -233,24 +245,28 @@ export class QuantumSuperposition extends EventEmitter {
       const stateIds = Array.from(this.states.keys());
       const index = Math.floor(trustScore * stateIds.length);
       selectedStateId = stateIds[Math.min(index, stateIds.length - 1)];
-      
-      this.log('context_selection_trust', {
-        trustScore,
-        selectedIndex: index,
-        selectedStateId
-      }, 'info');
+
+      this.log(
+        "context_selection_trust",
+        {
+          trustScore,
+          selectedIndex: index,
+          selectedStateId,
+        },
+        "info",
+      );
     }
-    
+
     // Environment-based selection
     else if (context?.environment) {
       selectedStateId = this.selectByEnvironment(context.environment);
     }
-    
+
     // Risk-based selection
     else if (context?.riskLevel !== undefined) {
       selectedStateId = this.selectByRiskLevel(context.riskLevel);
     }
-    
+
     // Default to current active state
     else {
       selectedStateId = this.activeStateId;
@@ -259,61 +275,73 @@ export class QuantumSuperposition extends EventEmitter {
     if (selectedStateId && this.states.has(selectedStateId)) {
       this.setActiveState(selectedStateId);
       const state = this.states.get(selectedStateId)!;
-      
-      this.log('context_selection_completed', {
-        context,
-        selectedStateId,
-        stateType: state.stateType
-      }, 'info');
+
+      this.log(
+        "context_selection_completed",
+        {
+          context,
+          selectedStateId,
+          stateType: state.stateType,
+        },
+        "info",
+      );
 
       return state;
     }
 
-    this.log('context_selection_failed', { context }, 'error');
+    this.log("context_selection_failed", { context }, "error");
     return null;
   }
 
   // Comprehensive state collapse with cleanup
-  public collapseAll(reason: string = 'Manual collapse'): void {
-    this.log('collapse_initiated', { reason }, 'warning');
+  public collapseAll(reason: string = "Manual collapse"): void {
+    this.log("collapse_initiated", { reason }, "warning");
 
     this.states.forEach((state, stateId) => {
       state.stateType = QuantumStateType.Collapsed;
       state.active = false;
       state.updatedAt = new Date();
-      
+
       this.recordStateTransition(
         state.stateType,
         QuantumStateType.Collapsed,
-        reason
+        reason,
       );
     });
 
     this.activeStateId = null;
     this.isCollapsed = true;
-    
+
     // Clean up timers
     this.clearTimers();
-    
-    this.log('collapse_completed', {
-      reason,
-      collapsedStatesCount: this.states.size
-    }, 'critical');
 
-    this.emit('superpositionCollapsed', {
+    this.log(
+      "collapse_completed",
+      {
+        reason,
+        collapsedStatesCount: this.states.size,
+      },
+      "critical",
+    );
+
+    this.emit("superpositionCollapsed", {
       reason,
       timestamp: new Date(),
-      statesCount: this.states.size
+      statesCount: this.states.size,
     });
   }
 
   // Get active state with access logging
   public getActiveState(): QuantumState | null {
     if (!this.activeStateId || this.isCollapsed) {
-      this.log('active_state_access_blocked', {
-        activeStateId: this.activeStateId,
-        isCollapsed: this.isCollapsed
-      }, 'warning');
+      this.log(
+        "active_state_access_blocked",
+        {
+          activeStateId: this.activeStateId,
+          isCollapsed: this.isCollapsed,
+        },
+        "warning",
+      );
       return null;
     }
 
@@ -323,48 +351,60 @@ export class QuantumSuperposition extends EventEmitter {
       state.accessCount++;
       state.lastAccessed = new Date();
       state.updatedAt = new Date();
-      
+
       this.observationCount++;
-      
-      this.log('active_state_accessed', {
-        stateId: this.activeStateId,
-        accessCount: state.accessCount,
-        observationCount: this.observationCount
-      }, 'info');
+
+      this.log(
+        "active_state_accessed",
+        {
+          stateId: this.activeStateId,
+          accessCount: state.accessCount,
+          observationCount: this.observationCount,
+        },
+        "info",
+      );
 
       // Check observation limits
       if (this.observationCount >= this.config.maxObservations) {
-        this.log('observation_limit_exceeded', {
+        this.log(
+          "observation_limit_exceeded",
+          {
+            count: this.observationCount,
+            limit: this.config.maxObservations,
+          },
+          "warning",
+        );
+
+        this.emit("observationLimitExceeded", {
           count: this.observationCount,
-          limit: this.config.maxObservations
-        }, 'warning');
-        
-        this.emit('observationLimitExceeded', {
-          count: this.observationCount,
-          limit: this.config.maxObservations
+          limit: this.config.maxObservations,
         });
       }
 
       return { ...state }; // Return copy to prevent external mutation
     }
 
-    this.log('active_state_not_found', {
-      activeStateId: this.activeStateId
-    }, 'error');
-    
+    this.log(
+      "active_state_not_found",
+      {
+        activeStateId: this.activeStateId,
+      },
+      "error",
+    );
+
     return null;
   }
 
   // Add new quantum state with validation
   public addState(state: Partial<QuantumState>): string {
     const stateId = state.id || this.generateStateId(this.states.size);
-    
+
     const newState: QuantumState = {
       id: stateId,
       index: this.states.size,
       ciphertext: state.ciphertext || Buffer.alloc(0),
       nonce: state.nonce || randomBytes(16),
-      mac: state.mac || '',
+      mac: state.mac || "",
       createdAt: state.createdAt || new Date(),
       updatedAt: new Date(),
       active: false,
@@ -374,28 +414,34 @@ export class QuantumSuperposition extends EventEmitter {
       poisonLevel: 0,
       entanglements: [],
       metadata: {
-        originalDataHash: this.calculateHash(state.ciphertext || Buffer.alloc(0)),
-        encryptionAlgorithm: 'SEAL',
-        keyId: 'default',
+        originalDataHash: this.calculateHash(
+          state.ciphertext || Buffer.alloc(0),
+        ),
+        encryptionAlgorithm: "SEAL",
+        keyId: "default",
         sizeBytes: (state.ciphertext || Buffer.alloc(0)).length,
         noiseLevel: 0,
         operationsCount: 0,
         maxOperations: 100,
         coherenceTime: this.config.coherenceTimeMs,
-        ...state.metadata
-      }
+        ...state.metadata,
+      },
     };
 
     this.states.set(stateId, newState);
-    
-    this.log('state_added', {
-      stateId,
-      totalStates: this.states.size,
-      stateType: newState.stateType
-    }, 'info');
 
-    this.emit('stateAdded', { stateId, state: newState });
-    
+    this.log(
+      "state_added",
+      {
+        stateId,
+        totalStates: this.states.size,
+        stateType: newState.stateType,
+      },
+      "info",
+    );
+
+    this.emit("stateAdded", { stateId, state: newState });
+
     return stateId;
   }
 
@@ -403,13 +449,15 @@ export class QuantumSuperposition extends EventEmitter {
   public removeState(stateId: string): boolean {
     const state = this.states.get(stateId);
     if (!state) {
-      this.log('state_removal_failed_not_found', { stateId }, 'warning');
+      this.log("state_removal_failed_not_found", { stateId }, "warning");
       return false;
     }
 
     // If removing active state, rotate to another
     if (this.activeStateId === stateId) {
-      const remainingStates = Array.from(this.states.keys()).filter(id => id !== stateId);
+      const remainingStates = Array.from(this.states.keys()).filter(
+        (id) => id !== stateId,
+      );
       if (remainingStates.length > 0) {
         this.setActiveState(remainingStates[0]);
       } else {
@@ -418,15 +466,19 @@ export class QuantumSuperposition extends EventEmitter {
     }
 
     this.states.delete(stateId);
-    
-    this.log('state_removed', {
-      stateId,
-      remainingStates: this.states.size,
-      wasActive: this.activeStateId === stateId
-    }, 'info');
 
-    this.emit('stateRemoved', { stateId, remainingStates: this.states.size });
-    
+    this.log(
+      "state_removed",
+      {
+        stateId,
+        remainingStates: this.states.size,
+        wasActive: this.activeStateId === stateId,
+      },
+      "info",
+    );
+
+    this.emit("stateRemoved", { stateId, remainingStates: this.states.size });
+
     return true;
   }
 
@@ -440,23 +492,27 @@ export class QuantumSuperposition extends EventEmitter {
 
     if (filter) {
       if (filter.stateType !== undefined) {
-        states = states.filter(s => s.stateType === filter.stateType);
+        states = states.filter((s) => s.stateType === filter.stateType);
       }
       if (filter.active !== undefined) {
-        states = states.filter(s => s.active === filter.active);
+        states = states.filter((s) => s.active === filter.active);
       }
       if (filter.minAccessCount !== undefined) {
-        states = states.filter(s => s.accessCount >= filter.minAccessCount!);
+        states = states.filter((s) => s.accessCount >= filter.minAccessCount!);
       }
     }
 
-    this.log('states_queried', {
-      filter,
-      resultCount: states.length,
-      totalStates: this.states.size
-    }, 'info');
+    this.log(
+      "states_queried",
+      {
+        filter,
+        resultCount: states.length,
+        totalStates: this.states.size,
+      },
+      "info",
+    );
 
-    return states.map(state => ({ ...state })); // Return copies
+    return states.map((state) => ({ ...state })); // Return copies
   }
 
   // Apply quantum decoherence
@@ -468,26 +524,30 @@ export class QuantumSuperposition extends EventEmitter {
 
       if (state.degradationLevel >= this.config.degradationThreshold) {
         state.stateType = QuantumStateType.Degraded;
-        
+
         this.recordStateTransition(
           QuantumStateType.Healthy,
           QuantumStateType.Degraded,
-          'Decoherence threshold exceeded'
+          "Decoherence threshold exceeded",
         );
       }
     });
 
-    this.log('decoherence_applied', {
-      factor,
-      degradedStates: this.getStateCountByType(QuantumStateType.Degraded)
-    }, 'info');
+    this.log(
+      "decoherence_applied",
+      {
+        factor,
+        degradedStates: this.getStateCountByType(QuantumStateType.Degraded),
+      },
+      "info",
+    );
   }
 
   // Poison quantum state
   public poisonState(stateId: string, poisonLevel: number = 0.5): boolean {
     const state = this.states.get(stateId);
     if (!state) {
-      this.log('poison_failed_state_not_found', { stateId }, 'error');
+      this.log("poison_failed_state_not_found", { stateId }, "error");
       return false;
     }
 
@@ -496,15 +556,23 @@ export class QuantumSuperposition extends EventEmitter {
     state.stateType = QuantumStateType.Poisoned;
     state.updatedAt = new Date();
 
-    this.recordStateTransition(previousType, QuantumStateType.Poisoned, 'Poisoning applied');
+    this.recordStateTransition(
+      previousType,
+      QuantumStateType.Poisoned,
+      "Poisoning applied",
+    );
 
-    this.log('state_poisoned', {
-      stateId,
-      poisonLevel: state.poisonLevel,
-      previousType
-    }, 'warning');
+    this.log(
+      "state_poisoned",
+      {
+        stateId,
+        poisonLevel: state.poisonLevel,
+        previousType,
+      },
+      "warning",
+    );
 
-    this.emit('statePoisoned', { stateId, poisonLevel: state.poisonLevel });
+    this.emit("statePoisoned", { stateId, poisonLevel: state.poisonLevel });
 
     return true;
   }
@@ -512,29 +580,30 @@ export class QuantumSuperposition extends EventEmitter {
   // Get comprehensive metrics
   public getMetrics(): SuperpositionMetrics {
     const states = Array.from(this.states.values());
-    
+
     const metrics: SuperpositionMetrics = {
       totalStates: states.length,
-      activeStates: states.filter(s => s.active).length,
+      activeStates: states.filter((s) => s.active).length,
       collapsedStates: this.getStateCountByType(QuantumStateType.Collapsed),
       poisonedStates: this.getStateCountByType(QuantumStateType.Poisoned),
       degradedStates: this.getStateCountByType(QuantumStateType.Degraded),
       totalObservations: this.observationCount,
-      unauthorizedAttempts: this.auditLogs.filter(log => 
-        log.event.includes('unauthorized')).length,
+      unauthorizedAttempts: this.auditLogs.filter((log) =>
+        log.event.includes("unauthorized"),
+      ).length,
       averageCoherenceTime: this.calculateAverageCoherenceTime(),
       entropyLevel: this.calculateEntropy(),
-      systemHealth: this.calculateSystemHealth()
+      systemHealth: this.calculateSystemHealth(),
     };
 
-    this.log('metrics_calculated', metrics, 'info');
+    this.log("metrics_calculated", metrics, "info");
 
     return metrics;
   }
 
   // Get audit logs with filtering
   public getAuditLogs(filter?: {
-    severity?: 'info' | 'warning' | 'error' | 'critical';
+    severity?: "info" | "warning" | "error" | "critical";
     event?: string;
     stateId?: string;
     since?: Date;
@@ -543,16 +612,16 @@ export class QuantumSuperposition extends EventEmitter {
 
     if (filter) {
       if (filter.severity) {
-        logs = logs.filter(log => log.severity === filter.severity);
+        logs = logs.filter((log) => log.severity === filter.severity);
       }
       if (filter.event) {
-        logs = logs.filter(log => log.event.includes(filter.event!));
+        logs = logs.filter((log) => log.event.includes(filter.event!));
       }
       if (filter.stateId) {
-        logs = logs.filter(log => log.stateId === filter.stateId);
+        logs = logs.filter((log) => log.stateId === filter.stateId);
       }
       if (filter.since) {
-        logs = logs.filter(log => log.timestamp >= filter.since!);
+        logs = logs.filter((log) => log.timestamp >= filter.since!);
       }
     }
 
@@ -571,20 +640,25 @@ export class QuantumSuperposition extends EventEmitter {
       lastRotation: this.lastRotation,
       isCollapsed: this.isCollapsed,
       auditLogs: this.auditLogs.slice(-100), // Last 100 logs
-      stateTransitions: this.stateTransitions.slice(-50) // Last 50 transitions
+      stateTransitions: this.stateTransitions.slice(-50), // Last 50 transitions
     };
   }
 
   // Import state from persistence
   public static fromExportedState(exportedState: any): QuantumSuperposition {
-    const states = exportedState.states.map(([id, state]: [string, any]) => state);
-    const superposition = new QuantumSuperposition(states, exportedState.config);
-    
+    const states = exportedState.states.map(
+      ([id, state]: [string, any]) => state,
+    );
+    const superposition = new QuantumSuperposition(
+      states,
+      exportedState.config,
+    );
+
     superposition.activeStateId = exportedState.activeStateId;
     superposition.observationCount = exportedState.observationCount;
     superposition.lastRotation = new Date(exportedState.lastRotation);
     superposition.isCollapsed = exportedState.isCollapsed;
-    
+
     if (exportedState.auditLogs) {
       superposition.auditLogs = exportedState.auditLogs;
     }
@@ -600,10 +674,14 @@ export class QuantumSuperposition extends EventEmitter {
     this.clearTimers();
     this.removeAllListeners();
     this.states.clear();
-    
-    this.log('superposition_destroyed', {
-      superpositionId: this.superpositionId
-    }, 'info');
+
+    this.log(
+      "superposition_destroyed",
+      {
+        superpositionId: this.superpositionId,
+      },
+      "info",
+    );
   }
 
   // Private helper methods
@@ -613,7 +691,7 @@ export class QuantumSuperposition extends EventEmitter {
     }
 
     // Deactivate all states
-    this.states.forEach(state => {
+    this.states.forEach((state) => {
       state.active = false;
     });
 
@@ -621,19 +699,23 @@ export class QuantumSuperposition extends EventEmitter {
     const newActiveState = this.states.get(stateId)!;
     newActiveState.active = true;
     newActiveState.updatedAt = new Date();
-    
+
     this.activeStateId = stateId;
 
-    this.log('active_state_changed', {
-      newActiveStateId: stateId,
-      stateType: newActiveState.stateType
-    }, 'info');
+    this.log(
+      "active_state_changed",
+      {
+        newActiveStateId: stateId,
+        stateType: newActiveState.stateType,
+      },
+      "info",
+    );
   }
 
   private selectByEnvironment(environment: string): string | null {
     // Environment-based selection logic
     const stateIds = Array.from(this.states.keys());
-    const hash = createHash('sha256').update(environment).digest();
+    const hash = createHash("sha256").update(environment).digest();
     const index = hash[0] % stateIds.length;
     return stateIds[index];
   }
@@ -668,16 +750,23 @@ export class QuantumSuperposition extends EventEmitter {
     this.states.forEach((state, stateId) => {
       const age = now.getTime() - state.createdAt.getTime();
       if (age > state.metadata.coherenceTime) {
-        const factor = (age - state.metadata.coherenceTime) / state.metadata.coherenceTime * 0.1;
+        const factor =
+          ((age - state.metadata.coherenceTime) /
+            state.metadata.coherenceTime) *
+          0.1;
         state.degradationLevel = Math.min(1.0, state.degradationLevel + factor);
         decoherenceApplied = true;
       }
     });
 
     if (decoherenceApplied) {
-      this.log('coherence_monitoring_decoherence', {
-        timestamp: now
-      }, 'info');
+      this.log(
+        "coherence_monitoring_decoherence",
+        {
+          timestamp: now,
+        },
+        "info",
+      );
     }
   }
 
@@ -693,109 +782,126 @@ export class QuantumSuperposition extends EventEmitter {
   }
 
   private generateId(): string {
-    return `qsp_${Date.now()}_${randomBytes(8).toString('hex')}`;
+    return `qsp_${Date.now()}_${randomBytes(8).toString("hex")}`;
   }
 
   private generateStateId(index: number): string {
-    return `qs_${this.superpositionId}_${index}_${randomBytes(4).toString('hex')}`;
+    return `qs_${this.superpositionId}_${index}_${randomBytes(4).toString("hex")}`;
   }
 
   private calculateHash(data: Buffer): string {
-    return createHash('sha256').update(data).digest('hex');
+    return createHash("sha256").update(data).digest("hex");
   }
 
   private getStateCountByType(type: QuantumStateType): number {
-    return Array.from(this.states.values()).filter(s => s.stateType === type).length;
+    return Array.from(this.states.values()).filter((s) => s.stateType === type)
+      .length;
   }
 
   private calculateAverageCoherenceTime(): number {
     const states = Array.from(this.states.values());
     if (states.length === 0) return 0;
-    
-    const total = states.reduce((sum, state) => sum + state.metadata.coherenceTime, 0);
+
+    const total = states.reduce(
+      (sum, state) => sum + state.metadata.coherenceTime,
+      0,
+    );
     return total / states.length;
   }
 
   private calculateEntropy(): number {
     const stateTypes = Object.values(QuantumStateType);
-    const typeCounts = stateTypes.map(type => this.getStateCountByType(type));
+    const typeCounts = stateTypes.map((type) => this.getStateCountByType(type));
     const total = typeCounts.reduce((sum, count) => sum + count, 0);
-    
+
     if (total === 0) return 0;
-    
+
     let entropy = 0;
-    typeCounts.forEach(count => {
+    typeCounts.forEach((count) => {
       if (count > 0) {
         const probability = count / total;
         entropy -= probability * Math.log2(probability);
       }
     });
-    
+
     return entropy;
   }
 
   private calculateSystemHealth(): number {
     const states = Array.from(this.states.values());
     if (states.length === 0) return 0;
-    
-    const healthyStates = states.filter(s => 
-      s.stateType === QuantumStateType.Healthy && s.degradationLevel < 0.5).length;
-    
+
+    const healthyStates = states.filter(
+      (s) =>
+        s.stateType === QuantumStateType.Healthy && s.degradationLevel < 0.5,
+    ).length;
+
     return healthyStates / states.length;
   }
 
-  private recordStateTransition(from: QuantumStateType, to: QuantumStateType, trigger: string): void {
+  private recordStateTransition(
+    from: QuantumStateType,
+    to: QuantumStateType,
+    trigger: string,
+  ): void {
     const transition: StateTransitionEvent = {
       fromState: from,
       toState: to,
       trigger,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    
+
     this.stateTransitions.push(transition);
-    
+
     // Keep only last 1000 transitions
     if (this.stateTransitions.length > 1000) {
       this.stateTransitions = this.stateTransitions.slice(-1000);
     }
-    
-    this.emit('stateTransition', transition);
+
+    this.emit("stateTransition", transition);
   }
 
-  private log(event: string, details: any = {}, severity: 'info' | 'warning' | 'error' | 'critical' = 'info'): void {
+  private log(
+    event: string,
+    details: any = {},
+    severity: "info" | "warning" | "error" | "critical" = "info",
+  ): void {
     const logEntry: SuperpositionAuditLog = {
       id: this.generateId(),
       timestamp: new Date(),
       event,
       details: {
         superpositionId: this.superpositionId,
-        ...details
+        ...details,
       },
       severity,
-      context: this.config.auditLevel === 'forensic' ? {
-        observationCount: this.observationCount,
-        activeStateId: this.activeStateId,
-        isCollapsed: this.isCollapsed,
-        statesCount: this.states.size
-      } : undefined
+      context:
+        this.config.auditLevel === "forensic"
+          ? {
+              observationCount: this.observationCount,
+              activeStateId: this.activeStateId,
+              isCollapsed: this.isCollapsed,
+              statesCount: this.states.size,
+            }
+          : undefined,
     };
 
     this.auditLogs.push(logEntry);
-    
+
     // Keep only last 10000 logs to prevent memory issues
     if (this.auditLogs.length > 10000) {
       this.auditLogs = this.auditLogs.slice(-10000);
     }
 
     // Emit for external logging systems
-    this.emit('auditLog', logEntry);
-    
+    this.emit("auditLog", logEntry);
+
     // Console logging based on severity
-    if (severity === 'error' || severity === 'critical') {
+    if (severity === "error" || severity === "critical") {
       console.error(`[QISDD-Superposition] ${event}:`, details);
-    } else if (severity === 'warning') {
+    } else if (severity === "warning") {
       console.warn(`[QISDD-Superposition] ${event}:`, details);
-    } else if (this.config.auditLevel === 'forensic') {
+    } else if (this.config.auditLevel === "forensic") {
       console.log(`[QISDD-Superposition] ${event}:`, details);
     }
   }
@@ -806,21 +912,21 @@ export class SuperpositionFactory {
   public static createFromData(
     data: any,
     stateCount: number = 3,
-    config: Partial<SuperpositionConfig> = {}
+    config: Partial<SuperpositionConfig> = {},
   ): QuantumSuperposition {
     const states: QuantumState[] = [];
-    
+
     for (let i = 0; i < stateCount; i++) {
       const stateData = JSON.stringify(data);
       const nonce = randomBytes(16);
       const ciphertext = Buffer.from(stateData); // In real implementation, use actual encryption
-      
+
       states.push({
-        id: `state_${i}_${randomBytes(4).toString('hex')}`,
+        id: `state_${i}_${randomBytes(4).toString("hex")}`,
         index: i,
         ciphertext,
         nonce,
-        mac: createHash('sha256').update(ciphertext).digest('hex'),
+        mac: createHash("sha256").update(ciphertext).digest("hex"),
         createdAt: new Date(),
         updatedAt: new Date(),
         active: i === 0,
@@ -830,22 +936,24 @@ export class SuperpositionFactory {
         poisonLevel: 0,
         entanglements: [],
         metadata: {
-          originalDataHash: createHash('sha256').update(stateData).digest('hex'),
-          encryptionAlgorithm: 'SEAL',
-          keyId: 'default',
+          originalDataHash: createHash("sha256")
+            .update(stateData)
+            .digest("hex"),
+          encryptionAlgorithm: "SEAL",
+          keyId: "default",
           sizeBytes: ciphertext.length,
           noiseLevel: 0,
           operationsCount: 0,
           maxOperations: 100,
-          coherenceTime: config.coherenceTimeMs || 300000
-        }
+          coherenceTime: config.coherenceTimeMs || 300000,
+        },
       });
     }
-    
+
     return new QuantumSuperposition(states, config);
   }
 }
 
 // Export for use with existing codebase
 export { QuantumSuperposition as Superposition };
-export {QuantumStateType}
+export { QuantumStateType };

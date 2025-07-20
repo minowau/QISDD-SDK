@@ -21,7 +21,11 @@ var Honeypot = /** @class */ (function () {
     // Generate honeypot data (fake data for attackers)
     Honeypot.prototype.generate = function (dataType) {
         // Simple fake data generator
-        return { fake: true, type: dataType, bait: Math.random().toString(36).slice(2) };
+        return {
+            fake: true,
+            type: dataType,
+            bait: Math.random().toString(36).slice(2),
+        };
     };
     // Serve honeypot data to unauthorized users
     Honeypot.prototype.serve = function (dataType) {

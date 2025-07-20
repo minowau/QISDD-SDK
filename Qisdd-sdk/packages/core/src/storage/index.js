@@ -80,16 +80,17 @@ var StateManager = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.memoryCache = new Map();
         _this.stateIndex = new Map(); // dataId -> Set<stateId>
-        _this.config = __assign({ storageType: 'hybrid', basePath: './data/quantum-states', compression: true, encryption: true, replication: true, maxMemoryStates: 1000, persistenceInterval: 30000, cacheTTL: 300000, enableMetrics: true }, config);
+        _this.config = __assign({ storageType: "hybrid", basePath: "./data/quantum-states", compression: true, encryption: true, replication: true, maxMemoryStates: 1000, persistenceInterval: 30000, cacheTTL: 300000, enableMetrics: true }, config);
         _this.initializeStorage();
         _this.initializeMetrics();
         _this.setupPeriodicPersistence();
-        logger.info('State manager initialized', { config: _this.config });
+        logger.info("State manager initialized", { config: _this.config });
         return _this;
     }
     StateManager.prototype.initializeStorage = function () {
         this.fileStorage = new FileStorageAdapter(this.config.basePath);
-        if (this.config.storageType === 'database' || this.config.storageType === 'hybrid') {
+        if (this.config.storageType === "database" ||
+            this.config.storageType === "hybrid") {
             this.databaseStorage = new DatabaseStorageAdapter();
         }
         this.compressionEngine = new CompressionEngine();
@@ -106,7 +107,7 @@ var StateManager = /** @class */ (function (_super) {
             replicationOverhead: 0,
             averageAccessTime: 0,
             integrityFailures: 0,
-            cacheHitRate: 0
+            cacheHitRate: 0,
         };
     };
     StateManager.prototype.setupPeriodicPersistence = function () {
@@ -137,10 +138,10 @@ var StateManager = /** @class */ (function (_super) {
                         _b.label = 1;
                     case 1:
                         _b.trys.push([1, 4, , 5]);
-                        logger.debug('Saving quantum state', {
+                        logger.debug("Saving quantum state", {
                             stateId: state.id,
                             dataSize: state.ciphertext.length,
-                            stateType: state.stateType
+                            stateType: state.stateType,
                         });
                         return [4 /*yield*/, this.createStateRecord(state)];
                     case 2:
@@ -153,20 +154,20 @@ var StateManager = /** @class */ (function (_super) {
                         // Update index
                         this.updateStateIndex(record.dataId, record.id);
                         // Update metrics
-                        this.updateMetrics('save', record);
+                        this.updateMetrics("save", record);
                         performance_1 = logger.endPerformanceTimer(operationId);
-                        logger.info('Quantum state saved successfully', {
+                        logger.info("Quantum state saved successfully", {
                             stateId: state.id,
                             storageLocation: (_a = record.location) === null || _a === void 0 ? void 0 : _a.primary,
-                            performance: performance_1
+                            performance: performance_1,
                         });
-                        this.emit('stateSaved', { stateId: state.id, record: record, performance: performance_1 });
+                        this.emit("stateSaved", { stateId: state.id, record: record, performance: performance_1 });
                         return [2 /*return*/, record.id];
                     case 4:
                         error_1 = _b.sent();
-                        logger.error('Failed to save quantum state', error_1, {
+                        logger.error("Failed to save quantum state", error_1, {
                             stateId: state.id,
-                            operationId: operationId
+                            operationId: operationId,
                         });
                         throw error_1;
                     case 5: return [2 /*return*/];
@@ -185,7 +186,7 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 8, , 9]);
-                        logger.debug('Retrieving quantum state', { stateId: stateId });
+                        logger.debug("Retrieving quantum state", { stateId: stateId });
                         record = this.memoryCache.get(stateId);
                         cacheHit = !!record;
                         if (!!record) return [3 /*break*/, 3];
@@ -199,14 +200,16 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 3;
                     case 3:
                         if (!record) {
-                            logger.warn('Quantum state not found', { stateId: stateId });
+                            logger.warn("Quantum state not found", { stateId: stateId });
                             return [2 /*return*/, null];
                         }
                         return [4 /*yield*/, this.verifyIntegrity(record)];
                     case 4:
                         integrityValid = _a.sent();
                         if (!!integrityValid) return [3 /*break*/, 6];
-                        logger.error('State integrity verification failed', undefined, { stateId: stateId });
+                        logger.error("State integrity verification failed", undefined, {
+                            stateId: stateId,
+                        });
                         this.metrics.integrityFailures++;
                         return [4 /*yield*/, this.recoverFromReplica(stateId)];
                     case 5:
@@ -220,21 +223,21 @@ var StateManager = /** @class */ (function (_super) {
                     case 7:
                         quantumState = _a.sent();
                         // Update access history
-                        this.recordAccess(record, 'read', true);
+                        this.recordAccess(record, "read", true);
                         performance_2 = logger.endPerformanceTimer(operationId);
-                        this.updateMetrics('get', record, cacheHit);
-                        logger.debug('Quantum state retrieved successfully', {
+                        this.updateMetrics("get", record, cacheHit);
+                        logger.debug("Quantum state retrieved successfully", {
                             stateId: stateId,
                             cacheHit: cacheHit,
-                            performance: performance_2
+                            performance: performance_2,
                         });
-                        this.emit('stateAccessed', { stateId: stateId, cacheHit: cacheHit, performance: performance_2 });
+                        this.emit("stateAccessed", { stateId: stateId, cacheHit: cacheHit, performance: performance_2 });
                         return [2 /*return*/, quantumState];
                     case 8:
                         error_2 = _a.sent();
-                        logger.error('Failed to retrieve quantum state', error_2, {
+                        logger.error("Failed to retrieve quantum state", error_2, {
                             stateId: stateId,
-                            operationId: operationId
+                            operationId: operationId,
                         });
                         throw error_2;
                     case 9: return [2 /*return*/];
@@ -254,10 +257,10 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        logger.debug('Retrieving quantum states for data', { dataId: dataId });
+                        logger.debug("Retrieving quantum states for data", { dataId: dataId });
                         stateIds = this.stateIndex.get(dataId);
                         if (!stateIds || stateIds.size === 0) {
-                            logger.warn('No states found for data', { dataId: dataId });
+                            logger.warn("No states found for data", { dataId: dataId });
                             return [2 /*return*/, []];
                         }
                         states_1 = [];
@@ -276,9 +279,9 @@ var StateManager = /** @class */ (function (_super) {
                                         return [3 /*break*/, 3];
                                     case 2:
                                         error_4 = _a.sent();
-                                        logger.warn('Failed to retrieve individual state', {
+                                        logger.warn("Failed to retrieve individual state", {
                                             stateId: stateId,
-                                            error: error_4.message
+                                            error: error_4.message,
                                         });
                                         return [3 /*break*/, 3];
                                     case 3: return [2 /*return*/];
@@ -291,17 +294,17 @@ var StateManager = /** @class */ (function (_super) {
                         // Sort by state index
                         states_1.sort(function (a, b) { return a.index - b.index; });
                         performance_3 = logger.endPerformanceTimer(operationId);
-                        logger.info('Retrieved quantum states for data', {
+                        logger.info("Retrieved quantum states for data", {
                             dataId: dataId,
                             stateCount: states_1.length,
-                            performance: performance_3
+                            performance: performance_3,
                         });
                         return [2 /*return*/, states_1];
                     case 3:
                         error_3 = _a.sent();
-                        logger.error('Failed to retrieve quantum states', error_3, {
+                        logger.error("Failed to retrieve quantum states", error_3, {
                             dataId: dataId,
-                            operationId: operationId
+                            operationId: operationId,
                         });
                         throw error_3;
                     case 4: return [2 /*return*/];
@@ -320,7 +323,10 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 6, , 7]);
-                        logger.debug('Updating quantum state', { stateId: stateId, updates: Object.keys(updates) });
+                        logger.debug("Updating quantum state", {
+                            stateId: stateId,
+                            updates: Object.keys(updates),
+                        });
                         return [4 /*yield*/, this.loadRecord(stateId)];
                     case 2:
                         record = _a.sent();
@@ -344,17 +350,17 @@ var StateManager = /** @class */ (function (_super) {
                         // Update memory cache
                         this.memoryCache.set(stateId, updatedRecord);
                         performance_4 = logger.endPerformanceTimer(operationId);
-                        logger.info('Quantum state updated successfully', {
+                        logger.info("Quantum state updated successfully", {
                             stateId: stateId,
-                            performance: performance_4
+                            performance: performance_4,
                         });
-                        this.emit('stateUpdated', { stateId: stateId, updates: updates, performance: performance_4 });
+                        this.emit("stateUpdated", { stateId: stateId, updates: updates, performance: performance_4 });
                         return [2 /*return*/, true];
                     case 6:
                         error_5 = _a.sent();
-                        logger.error('Failed to update quantum state', error_5, {
+                        logger.error("Failed to update quantum state", error_5, {
                             stateId: stateId,
-                            operationId: operationId
+                            operationId: operationId,
                         });
                         return [2 /*return*/, false];
                     case 7: return [2 /*return*/];
@@ -374,7 +380,7 @@ var StateManager = /** @class */ (function (_super) {
                         _d.label = 1;
                     case 1:
                         _d.trys.push([1, 9, , 10]);
-                        logger.debug('Deleting quantum state', { stateId: stateId });
+                        logger.debug("Deleting quantum state", { stateId: stateId });
                         _a = this.memoryCache.get(stateId);
                         if (_a) return [3 /*break*/, 3];
                         return [4 /*yield*/, this.loadRecord(stateId)];
@@ -384,7 +390,7 @@ var StateManager = /** @class */ (function (_super) {
                     case 3:
                         record = _a;
                         if (!record) {
-                            logger.warn('State not found for deletion', { stateId: stateId });
+                            logger.warn("State not found for deletion", { stateId: stateId });
                             return [2 /*return*/, false];
                         }
                         // Remove from memory cache
@@ -416,17 +422,17 @@ var StateManager = /** @class */ (function (_super) {
                         return [3 /*break*/, 5];
                     case 8:
                         performance_5 = logger.endPerformanceTimer(operationId);
-                        logger.info('Quantum state deleted successfully', {
+                        logger.info("Quantum state deleted successfully", {
                             stateId: stateId,
-                            performance: performance_5
+                            performance: performance_5,
                         });
-                        this.emit('stateDeleted', { stateId: stateId, performance: performance_5 });
+                        this.emit("stateDeleted", { stateId: stateId, performance: performance_5 });
                         return [2 /*return*/, true];
                     case 9:
                         error_6 = _d.sent();
-                        logger.error('Failed to delete quantum state', error_6, {
+                        logger.error("Failed to delete quantum state", error_6, {
                             stateId: stateId,
-                            operationId: operationId
+                            operationId: operationId,
                         });
                         return [2 /*return*/, false];
                     case 10: return [2 /*return*/];
@@ -446,7 +452,7 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 13, , 14]);
-                        logger.info('Starting integrity verification for all states');
+                        logger.info("Starting integrity verification for all states");
                         report_1 = {
                             totalStates: 0,
                             verifiedStates: 0,
@@ -454,7 +460,7 @@ var StateManager = /** @class */ (function (_super) {
                             missingStates: 0,
                             repairedStates: 0,
                             irreparableStates: 0,
-                            details: []
+                            details: [],
                         };
                         // Verify memory cache states
                         return [4 /*yield*/, Promise.all(Array.from(this.memoryCache.entries()).map(function (_a) { return __awaiter(_this, [_a], void 0, function (_b) {
@@ -491,8 +497,8 @@ var StateManager = /** @class */ (function (_super) {
                                             report_1.missingStates++;
                                             report_1.details.push({
                                                 stateId: stateId,
-                                                issue: 'verification_failed',
-                                                error: error_9.message
+                                                issue: "verification_failed",
+                                                error: error_9.message,
                                             });
                                             return [3 /*break*/, 7];
                                         case 7: return [2 /*return*/];
@@ -502,7 +508,8 @@ var StateManager = /** @class */ (function (_super) {
                     case 2:
                         // Verify memory cache states
                         _a.sent();
-                        if (!(this.config.storageType === 'file' || this.config.storageType === 'hybrid')) return [3 /*break*/, 12];
+                        if (!(this.config.storageType === "file" ||
+                            this.config.storageType === "hybrid")) return [3 /*break*/, 12];
                         return [4 /*yield*/, this.fileStorage.listStates()];
                     case 3:
                         fileStates = _a.sent();
@@ -539,8 +546,8 @@ var StateManager = /** @class */ (function (_super) {
                         report_1.missingStates++;
                         report_1.details.push({
                             stateId: stateId,
-                            issue: 'load_failed',
-                            error: error_7.message
+                            issue: "load_failed",
+                            error: error_7.message,
                         });
                         return [3 /*break*/, 11];
                     case 11:
@@ -548,12 +555,14 @@ var StateManager = /** @class */ (function (_super) {
                         return [3 /*break*/, 4];
                     case 12:
                         performance_6 = logger.endPerformanceTimer(operationId);
-                        logger.info('Integrity verification completed', __assign(__assign({}, report_1), { performance: performance_6 }));
-                        this.emit('integrityVerificationCompleted', { report: report_1, performance: performance_6 });
+                        logger.info("Integrity verification completed", __assign(__assign({}, report_1), { performance: performance_6 }));
+                        this.emit("integrityVerificationCompleted", { report: report_1, performance: performance_6 });
                         return [2 /*return*/, report_1];
                     case 13:
                         error_8 = _a.sent();
-                        logger.error('Integrity verification failed', error_8, { operationId: operationId });
+                        logger.error("Integrity verification failed", error_8, {
+                            operationId: operationId,
+                        });
                         throw error_8;
                     case 14: return [2 /*return*/];
                 }
@@ -567,7 +576,7 @@ var StateManager = /** @class */ (function (_super) {
         return __awaiter(this, void 0, void 0, function () {
             var now_1, _i, _a, _b, stateId, record, age, _c, _d, record;
             return __generator(this, function (_e) {
-                logger.info('Starting storage cleanup');
+                logger.info("Starting storage cleanup");
                 try {
                     now_1 = Date.now();
                     for (_i = 0, _a = Array.from(this.memoryCache.entries()); _i < _a.length; _i++) {
@@ -580,13 +589,12 @@ var StateManager = /** @class */ (function (_super) {
                     // Clean old access records
                     for (_c = 0, _d = Array.from(this.memoryCache.values()); _c < _d.length; _c++) {
                         record = _d[_c];
-                        record.accessHistory = record.accessHistory.filter(function (access) { return now_1 - access.timestamp.getTime() < 24 * 60 * 60 * 1000; } // Keep 24 hours
-                        );
+                        record.accessHistory = record.accessHistory.filter(function (access) { return now_1 - access.timestamp.getTime() < 24 * 60 * 60 * 1000; });
                     }
-                    logger.info('Storage cleanup completed');
+                    logger.info("Storage cleanup completed");
                 }
                 catch (error) {
-                    logger.error('Storage cleanup failed', error);
+                    logger.error("Storage cleanup failed", error);
                 }
                 return [2 /*return*/];
             });
@@ -597,7 +605,7 @@ var StateManager = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        logger.info('Destroying state manager');
+                        logger.info("Destroying state manager");
                         if (this.persistenceTimer) {
                             clearInterval(this.persistenceTimer);
                         }
@@ -616,7 +624,7 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 3;
                     case 3:
                         this.removeAllListeners();
-                        logger.info('State manager destroyed');
+                        logger.info("State manager destroyed");
                         return [2 /*return*/];
                 }
             });
@@ -645,10 +653,12 @@ var StateManager = /** @class */ (function (_super) {
                         processedData = _a.sent();
                         _a.label = 4;
                     case 4:
-                        checksumSHA256 = (0, crypto_1.createHash)('sha256').update(processedData).digest('hex');
+                        checksumSHA256 = (0, crypto_1.createHash)("sha256")
+                            .update(processedData)
+                            .digest("hex");
                         record = {
                             id: state.id,
-                            dataId: state.id.split('_state_')[0] || state.id, // Extract dataId from stateId
+                            dataId: state.id.split("_state_")[0] || state.id, // Extract dataId from stateId
                             stateIndex: state.index,
                             createdAt: state.createdAt,
                             updatedAt: state.updatedAt,
@@ -658,15 +668,17 @@ var StateManager = /** @class */ (function (_super) {
                             metadata: {
                                 originalSize: originalSize,
                                 compressedSize: this.config.compression ? compressedSize : undefined,
-                                compressionRatio: this.config.compression ? compressedSize / originalSize : undefined,
+                                compressionRatio: this.config.compression
+                                    ? compressedSize / originalSize
+                                    : undefined,
                                 checksumSHA256: checksumSHA256,
-                                encryptionKeyId: this.config.encryption ? 'default' : undefined,
+                                encryptionKeyId: this.config.encryption ? "default" : undefined,
                                 replicationFactor: this.config.replication ? 2 : 1,
                                 lastVerified: new Date(),
                                 integrityChecks: 0,
-                                corruptionDetected: false
+                                corruptionDetected: false,
                             },
-                            accessHistory: []
+                            accessHistory: [],
                         };
                         return [2 /*return*/, record];
                 }
@@ -690,7 +702,7 @@ var StateManager = /** @class */ (function (_super) {
                             primary: primaryLocation,
                             storageType: this.getStorageTypeForLocation(primaryLocation),
                             lastAccessed: new Date(),
-                            accessCount: 0
+                            accessCount: 0,
                         };
                         if (!this.config.replication) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.createReplicas(record)];
@@ -712,16 +724,16 @@ var StateManager = /** @class */ (function (_super) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (this.config.storageType) {
-                    case 'memory':
-                        return [2 /*return*/, 'memory'];
-                    case 'file':
+                    case "memory":
+                        return [2 /*return*/, "memory"];
+                    case "file":
                         return [2 /*return*/, this.fileStorage.generatePath(record.id)];
-                    case 'database':
-                        return [2 /*return*/, 'database'];
-                    case 'hybrid':
+                    case "database":
+                        return [2 /*return*/, "database"];
+                    case "hybrid":
                         // Use memory for frequently accessed states, file for others
                         if (record.active || record.stateType === superposition_1.QuantumStateType.Healthy) {
-                            return [2 /*return*/, 'memory'];
+                            return [2 /*return*/, "memory"];
                         }
                         return [2 /*return*/, this.fileStorage.generatePath(record.id)];
                     default:
@@ -736,11 +748,11 @@ var StateManager = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (!(location === 'memory')) return [3 /*break*/, 1];
+                        if (!(location === "memory")) return [3 /*break*/, 1];
                         // Already handled in storeRecord
                         return [2 /*return*/];
                     case 1:
-                        if (!(location === 'database')) return [3 /*break*/, 4];
+                        if (!(location === "database")) return [3 /*break*/, 4];
                         if (!this.databaseStorage) return [3 /*break*/, 3];
                         return [4 /*yield*/, this.databaseStorage.store(record)];
                     case 2:
@@ -760,11 +772,11 @@ var StateManager = /** @class */ (function (_super) {
         });
     };
     StateManager.prototype.getStorageTypeForLocation = function (location) {
-        if (location === 'memory')
-            return 'memory';
-        if (location === 'database')
-            return 'database';
-        return 'file';
+        if (location === "memory")
+            return "memory";
+        if (location === "database")
+            return "database";
+        return "file";
     };
     StateManager.prototype.createReplicas = function (record) {
         return __awaiter(this, void 0, void 0, function () {
@@ -802,7 +814,7 @@ var StateManager = /** @class */ (function (_super) {
                     return [2 /*return*/, this.fileStorage.generatePath("".concat(record.id, "_replica_").concat(replicaIndex))];
                 }
                 else {
-                    return [2 /*return*/, 'database'];
+                    return [2 /*return*/, "database"];
                 }
                 return [2 /*return*/];
             });
@@ -822,9 +834,9 @@ var StateManager = /** @class */ (function (_super) {
                 switch (_a.label) {
                     case 0:
                         locations = [
-                            'memory',
+                            "memory",
                             this.fileStorage.generatePath(stateId),
-                            'database'
+                            "database",
                         ];
                         _i = 0, locations_1 = locations;
                         _a.label = 1;
@@ -834,13 +846,13 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 8, , 9]);
-                        if (!(location_1 === 'memory')) return [3 /*break*/, 3];
+                        if (!(location_1 === "memory")) return [3 /*break*/, 3];
                         record = this.memoryCache.get(stateId);
                         if (record)
                             return [2 /*return*/, record];
                         return [3 /*break*/, 7];
                     case 3:
-                        if (!(location_1 === 'database' && this.databaseStorage)) return [3 /*break*/, 5];
+                        if (!(location_1 === "database" && this.databaseStorage)) return [3 /*break*/, 5];
                         return [4 /*yield*/, this.databaseStorage.load(stateId)];
                     case 4:
                         record = _a.sent();
@@ -856,10 +868,10 @@ var StateManager = /** @class */ (function (_super) {
                     case 7: return [3 /*break*/, 9];
                     case 8:
                         error_10 = _a.sent();
-                        logger.debug('Failed to load from location', {
+                        logger.debug("Failed to load from location", {
                             stateId: stateId,
                             location: location_1,
-                            error: error_10.message
+                            error: error_10.message,
                         });
                         return [3 /*break*/, 9];
                     case 9:
@@ -878,23 +890,25 @@ var StateManager = /** @class */ (function (_super) {
                     if (!record.ciphertext) {
                         return [2 /*return*/, false];
                     }
-                    currentChecksum = (0, crypto_1.createHash)('sha256').update(record.ciphertext).digest('hex');
+                    currentChecksum = (0, crypto_1.createHash)("sha256")
+                        .update(record.ciphertext)
+                        .digest("hex");
                     isValid = currentChecksum === record.metadata.checksumSHA256;
                     record.metadata.integrityChecks++;
                     record.metadata.lastVerified = new Date();
                     if (!isValid) {
                         record.metadata.corruptionDetected = true;
-                        logger.warn('Integrity verification failed', {
+                        logger.warn("Integrity verification failed", {
                             stateId: record.id,
                             expectedChecksum: record.metadata.checksumSHA256,
-                            actualChecksum: currentChecksum
+                            actualChecksum: currentChecksum,
                         });
                     }
                     return [2 /*return*/, isValid];
                 }
                 catch (error) {
-                    logger.error('Integrity verification error', error, {
-                        stateId: record.id
+                    logger.error("Integrity verification error", error, {
+                        stateId: record.id,
                     });
                     return [2 /*return*/, false];
                 }
@@ -908,11 +922,11 @@ var StateManager = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        logger.info('Attempting to recover state from replica', { stateId: stateId });
+                        logger.info("Attempting to recover state from replica", { stateId: stateId });
                         possibleLocations = [
                             this.fileStorage.generatePath("".concat(stateId, "_replica_0")),
                             this.fileStorage.generatePath("".concat(stateId, "_replica_1")),
-                            'database'
+                            "database",
                         ];
                         _i = 0, possibleLocations_1 = possibleLocations;
                         _b.label = 1;
@@ -923,7 +937,7 @@ var StateManager = /** @class */ (function (_super) {
                     case 2:
                         _b.trys.push([2, 9, , 10]);
                         record = null;
-                        if (!(location_2 === 'database' && this.databaseStorage)) return [3 /*break*/, 4];
+                        if (!(location_2 === "database" && this.databaseStorage)) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.databaseStorage.load("".concat(stateId, "_replica"))];
                     case 3:
                         record = _b.sent();
@@ -941,26 +955,28 @@ var StateManager = /** @class */ (function (_super) {
                         _b.label = 8;
                     case 8:
                         if (_a) {
-                            logger.info('Successfully recovered state from replica', {
+                            logger.info("Successfully recovered state from replica", {
                                 stateId: stateId,
-                                replicaLocation: location_2
+                                replicaLocation: location_2,
                             });
                             return [2 /*return*/, record];
                         }
                         return [3 /*break*/, 10];
                     case 9:
                         error_11 = _b.sent();
-                        logger.debug('Failed to recover from replica location', {
+                        logger.debug("Failed to recover from replica location", {
                             stateId: stateId,
                             location: location_2,
-                            error: error_11.message
+                            error: error_11.message,
                         });
                         return [3 /*break*/, 10];
                     case 10:
                         _i++;
                         return [3 /*break*/, 1];
                     case 11:
-                        logger.error('Failed to recover state from any replica', undefined, { stateId: stateId });
+                        logger.error("Failed to recover state from any replica", undefined, {
+                            stateId: stateId,
+                        });
                         return [2 /*return*/, null];
                 }
             });
@@ -981,7 +997,7 @@ var StateManager = /** @class */ (function (_super) {
                         // Restore primary location
                         _a.sent();
                         this.memoryCache.set(stateId, repairedRecord);
-                        logger.info('State repaired successfully', { stateId: stateId });
+                        logger.info("State repaired successfully", { stateId: stateId });
                         return [2 /*return*/, true];
                     case 3: return [2 /*return*/, false];
                 }
@@ -1013,7 +1029,7 @@ var StateManager = /** @class */ (function (_super) {
                             index: record.stateIndex,
                             ciphertext: processedData,
                             nonce: (0, crypto_1.randomBytes)(16), // Regenerate nonce
-                            mac: (0, crypto_1.createHash)('sha256').update(processedData).digest('hex'),
+                            mac: (0, crypto_1.createHash)("sha256").update(processedData).digest("hex"),
                             createdAt: record.createdAt,
                             updatedAt: record.updatedAt,
                             active: record.active,
@@ -1024,14 +1040,14 @@ var StateManager = /** @class */ (function (_super) {
                             entanglements: [],
                             metadata: {
                                 originalDataHash: record.metadata.checksumSHA256,
-                                encryptionAlgorithm: 'SEAL',
-                                keyId: record.metadata.encryptionKeyId || 'default',
+                                encryptionAlgorithm: "SEAL",
+                                keyId: record.metadata.encryptionKeyId || "default",
                                 sizeBytes: processedData.length,
                                 noiseLevel: 0,
                                 operationsCount: 0,
                                 maxOperations: 100,
-                                coherenceTime: 300000
-                            }
+                                coherenceTime: 300000,
+                            },
                         };
                         return [2 /*return*/, quantumState];
                 }
@@ -1049,7 +1065,7 @@ var StateManager = /** @class */ (function (_super) {
             timestamp: new Date(),
             operation: operation,
             success: success,
-            duration: duration || 0
+            duration: duration || 0,
         };
         record.accessHistory.push(accessRecord);
         if (record.location) {
@@ -1066,25 +1082,27 @@ var StateManager = /** @class */ (function (_super) {
         if (!this.config.enableMetrics)
             return;
         switch (operation) {
-            case 'save':
+            case "save":
                 this.metrics.totalStates++;
-                if (((_a = record.location) === null || _a === void 0 ? void 0 : _a.storageType) === 'memory') {
+                if (((_a = record.location) === null || _a === void 0 ? void 0 : _a.storageType) === "memory") {
                     this.metrics.memoryStates++;
                 }
-                else if (((_b = record.location) === null || _b === void 0 ? void 0 : _b.storageType) === 'file') {
+                else if (((_b = record.location) === null || _b === void 0 ? void 0 : _b.storageType) === "file") {
                     this.metrics.fileStates++;
                 }
-                else if (((_c = record.location) === null || _c === void 0 ? void 0 : _c.storageType) === 'database') {
+                else if (((_c = record.location) === null || _c === void 0 ? void 0 : _c.storageType) === "database") {
                     this.metrics.databaseStates++;
                 }
                 this.metrics.totalStorageSize += record.metadata.originalSize;
-                if (record.metadata.compressedSize && record.metadata.compressionRatio) {
-                    this.metrics.compressionSavings += record.metadata.originalSize - record.metadata.compressedSize;
+                if (record.metadata.compressedSize &&
+                    record.metadata.compressionRatio) {
+                    this.metrics.compressionSavings +=
+                        record.metadata.originalSize - record.metadata.compressedSize;
                 }
                 break;
-            case 'get':
+            case "get":
                 if (cacheHit) {
-                    this.metrics.cacheHitRate = (this.metrics.cacheHitRate * 0.9) + (1 * 0.1); // Exponential moving average
+                    this.metrics.cacheHitRate = this.metrics.cacheHitRate * 0.9 + 1 * 0.1; // Exponential moving average
                 }
                 else {
                     this.metrics.cacheHitRate = this.metrics.cacheHitRate * 0.9; // Decay without hit
@@ -1099,14 +1117,20 @@ var StateManager = /** @class */ (function (_super) {
             return __generator(this, function (_d) {
                 switch (_d.label) {
                     case 0:
-                        logger.debug('Persisting pending states');
+                        logger.debug("Persisting pending states");
                         persistencePromises = [];
                         _loop_1 = function (stateId, record) {
-                            if (((_c = record.location) === null || _c === void 0 ? void 0 : _c.storageType) === 'memory' &&
-                                this_1.config.storageType === 'hybrid') {
+                            if (((_c = record.location) === null || _c === void 0 ? void 0 : _c.storageType) === "memory" &&
+                                this_1.config.storageType === "hybrid") {
                                 // Persist memory-only states to file storage
-                                persistencePromises.push(this_1.fileStorage.store(record, this_1.fileStorage.generatePath(stateId))
-                                    .catch(function (error) { return logger.warn('Failed to persist state', { stateId: stateId, error: error.message }); }));
+                                persistencePromises.push(this_1.fileStorage
+                                    .store(record, this_1.fileStorage.generatePath(stateId))
+                                    .catch(function (error) {
+                                    return logger.warn("Failed to persist state", {
+                                        stateId: stateId,
+                                        error: error.message,
+                                    });
+                                }));
                             }
                         };
                         this_1 = this;
@@ -1129,10 +1153,7 @@ var StateManager = /** @class */ (function (_super) {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        locations = [
-                            this.fileStorage.generatePath(stateId),
-                            'database'
-                        ];
+                        locations = [this.fileStorage.generatePath(stateId), "database"];
                         _i = 0, locations_2 = locations;
                         _a.label = 1;
                     case 1:
@@ -1141,7 +1162,7 @@ var StateManager = /** @class */ (function (_super) {
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 7, , 8]);
-                        if (!(location_3 === 'database' && this.databaseStorage)) return [3 /*break*/, 4];
+                        if (!(location_3 === "database" && this.databaseStorage)) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.databaseStorage.delete(stateId)];
                     case 3:
                         _a.sent();
@@ -1153,10 +1174,10 @@ var StateManager = /** @class */ (function (_super) {
                     case 6: return [3 /*break*/, 8];
                     case 7:
                         error_12 = _a.sent();
-                        logger.debug('Failed to delete from location', {
+                        logger.debug("Failed to delete from location", {
                             stateId: stateId,
                             location: location_3,
-                            error: error_12.message
+                            error: error_12.message,
                         });
                         return [3 /*break*/, 8];
                     case 8:
@@ -1174,7 +1195,7 @@ var StateManager = /** @class */ (function (_super) {
                 switch (_a.label) {
                     case 0:
                         _a.trys.push([0, 5, , 6]);
-                        if (!(replicaLocation === 'database' && this.databaseStorage)) return [3 /*break*/, 2];
+                        if (!(replicaLocation === "database" && this.databaseStorage)) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.databaseStorage.delete("".concat(stateId, "_replica"))];
                     case 1:
                         _a.sent();
@@ -1186,10 +1207,10 @@ var StateManager = /** @class */ (function (_super) {
                     case 4: return [3 /*break*/, 6];
                     case 5:
                         error_13 = _a.sent();
-                        logger.warn('Failed to delete replica', {
+                        logger.warn("Failed to delete replica", {
                             stateId: stateId,
                             replicaLocation: replicaLocation,
-                            error: error_13.message
+                            error: error_13.message,
                         });
                         return [3 /*break*/, 6];
                     case 6: return [2 /*return*/];
@@ -1219,8 +1240,8 @@ var FileStorageAdapter = /** @class */ (function () {
                     case 0: return [4 /*yield*/, fs_1.promises.mkdir((0, path_1.dirname)(filePath), { recursive: true })];
                     case 1:
                         _b.sent();
-                        serialized = JSON.stringify(__assign(__assign({}, record), { ciphertext: (_a = record.ciphertext) === null || _a === void 0 ? void 0 : _a.toString('base64') }));
-                        return [4 /*yield*/, fs_1.promises.writeFile(filePath, serialized, 'utf-8')];
+                        serialized = JSON.stringify(__assign(__assign({}, record), { ciphertext: (_a = record.ciphertext) === null || _a === void 0 ? void 0 : _a.toString("base64") }));
+                        return [4 /*yield*/, fs_1.promises.writeFile(filePath, serialized, "utf-8")];
                     case 2:
                         _b.sent();
                         return [2 /*return*/];
@@ -1235,17 +1256,17 @@ var FileStorageAdapter = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         _a.trys.push([0, 2, , 3]);
-                        return [4 /*yield*/, fs_1.promises.readFile(filePath, 'utf-8')];
+                        return [4 /*yield*/, fs_1.promises.readFile(filePath, "utf-8")];
                     case 1:
                         data = _a.sent();
                         parsed = JSON.parse(data);
                         if (parsed.ciphertext) {
-                            parsed.ciphertext = Buffer.from(parsed.ciphertext, 'base64');
+                            parsed.ciphertext = Buffer.from(parsed.ciphertext, "base64");
                         }
                         return [2 /*return*/, parsed];
                     case 2:
                         error_14 = _a.sent();
-                        if (error_14.code !== 'ENOENT') {
+                        if (error_14.code !== "ENOENT") {
                             throw error_14;
                         }
                         return [2 /*return*/, null];
@@ -1267,7 +1288,7 @@ var FileStorageAdapter = /** @class */ (function () {
                         return [3 /*break*/, 3];
                     case 2:
                         error_15 = _a.sent();
-                        if (error_15.code !== 'ENOENT') {
+                        if (error_15.code !== "ENOENT") {
                             throw error_15;
                         }
                         return [3 /*break*/, 3];
@@ -1294,7 +1315,7 @@ var DatabaseStorageAdapter = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Mock database storage - in real implementation would use actual database
-                logger.debug('Storing record in database', { stateId: record.id });
+                logger.debug("Storing record in database", { stateId: record.id });
                 return [2 /*return*/];
             });
         });
@@ -1303,7 +1324,7 @@ var DatabaseStorageAdapter = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Mock database load
-                logger.debug('Loading record from database', { stateId: stateId });
+                logger.debug("Loading record from database", { stateId: stateId });
                 return [2 /*return*/, null];
             });
         });
@@ -1312,7 +1333,7 @@ var DatabaseStorageAdapter = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Mock database delete
-                logger.debug('Deleting record from database', { stateId: stateId });
+                logger.debug("Deleting record from database", { stateId: stateId });
                 return [2 /*return*/];
             });
         });
@@ -1321,7 +1342,7 @@ var DatabaseStorageAdapter = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Close database connections
-                logger.debug('Closing database connections');
+                logger.debug("Closing database connections");
                 return [2 /*return*/];
             });
         });
@@ -1336,7 +1357,7 @@ var CompressionEngine = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Mock compression - in real implementation would use zlib or similar
-                logger.debug('Compressing data', { originalSize: data.length });
+                logger.debug("Compressing data", { originalSize: data.length });
                 return [2 /*return*/, data]; // No actual compression in mock
             });
         });
@@ -1345,7 +1366,7 @@ var CompressionEngine = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Mock decompression
-                logger.debug('Decompressing data', { compressedSize: data.length });
+                logger.debug("Decompressing data", { compressedSize: data.length });
                 return [2 /*return*/, data]; // No actual decompression in mock
             });
         });
@@ -1360,7 +1381,7 @@ var EncryptionEngine = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Mock encryption - in real implementation would use proper encryption
-                logger.debug('Encrypting data', { dataSize: data.length });
+                logger.debug("Encrypting data", { dataSize: data.length });
                 return [2 /*return*/, data]; // No actual encryption in mock
             });
         });
@@ -1369,7 +1390,7 @@ var EncryptionEngine = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Mock decryption
-                logger.debug('Decrypting data', { dataSize: data.length });
+                logger.debug("Decrypting data", { dataSize: data.length });
                 return [2 /*return*/, data]; // No actual decryption in mock
             });
         });

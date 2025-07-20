@@ -5,21 +5,22 @@ import { QuantumSuperposition, SuperpositionFactory, QuantumState, QuantumStateT
 import { ObserverEffect } from './quantum/observer-effect';
 import { Measurement } from './quantum/measurement';
 import { Entanglement } from './quantum/entanglement';
-import { QISDDLogger, LoggerFactory, LogLevel, LogCategory } from './logging';
+import { QISDDLogger, LoggerFactory, LogLevel, LogCategory, AuditEvent } from './logging';
 import { CryptoSuite } from './crypto';
 import { EventEmitter } from 'events';
 import { randomBytes } from 'crypto';
 
 // Main QISDD Client with Complete Integration
 export class QISDDIntegratedClient extends EventEmitter {
-  private cryptoSuite: CryptoSuite;
-  private logger: QISDDLogger;
+  private cryptoSuite!: CryptoSuite;
+  private logger!: QISDDLogger;
   private superpositions: Map<string, QuantumSuperposition> = new Map();
-  private observer: ObserverEffect;
-  private measurement: Measurement;
-  private entanglement: Entanglement;
-  private metrics: ClientMetrics;
+  private observer!: ObserverEffect;
+  private measurement!: Measurement;
+  private entanglement!: Entanglement;
+  private metrics!: ClientMetrics;
   private config: QISDDConfig;
+  private _initialized: boolean = false;
 
   constructor(config: Partial<QISDDConfig> = {}) {
     super();
@@ -65,17 +66,34 @@ export class QISDDIntegratedClient extends EventEmitter {
       ...config
     };
 
-    this.initializeComponents();
-    this.setupEventHandlers();
-    this.initializeMetrics();
+    this.initializeAsync();
   }
 
-  private initializeComponents(): void {
+  /**
+   * Wait for client initialization to complete
+   */
+  public async waitForInitialization(): Promise<void> {
+    while (!this._initialized) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  }
+
+  private async initializeAsync(): Promise<void> {
+    await this.initializeComponents();
+    this.setupEventHandlers();
+    this.initializeMetrics();
+    this._initialized = true;
+  }
+
+  private async initializeComponents(): Promise<void> {
     // Initialize logger first
     this.logger = LoggerFactory.createQuantumLogger(this.config.loggerConfig);
     
     // Initialize crypto suite
     this.cryptoSuite = new CryptoSuite(this.config.cryptoConfig);
+    
+    // Wait for crypto initialization
+    await this.cryptoSuite.waitForInitialization();
     
     // Initialize quantum components
     this.observer = new ObserverEffect(3); // 3 unauthorized attempts threshold
@@ -615,6 +633,13 @@ export class QISDDIntegratedClient extends EventEmitter {
   }
 
   /**
+   * Get audit trail events
+   */
+  public getAuditTrail(filter?: Partial<AuditEvent>): AuditEvent[] {
+    return this.logger.getAuditTrail(filter);
+  }
+
+  /**
    * Cleanup and destroy client
    */
   public async destroy(): Promise<void> {
@@ -976,6 +1001,9 @@ export async function demonstrateQISDDUsage(): Promise<void> {
 
   // Create client
   const client = QISDDFactory.createDevelopmentClient();
+  
+  // Wait for initialization
+  await client.waitForInitialization();
 
   try {
     // Protect sensitive data

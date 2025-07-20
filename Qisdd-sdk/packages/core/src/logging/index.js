@@ -63,6 +63,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
         if (ar || !(i in from)) {
@@ -73,7 +84,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.globalLogger = exports.LoggerFactory = exports.QISDDLogger = exports.LogCategory = exports.LogLevel = void 0;
+exports.globalLogger = exports.LoggerFactory = exports.QISDDLogger = exports.AuditLogger = exports.LogCategory = exports.LogLevel = void 0;
 var events_1 = require("events");
 var crypto_1 = require("crypto");
 var promises_1 = require("fs/promises");
@@ -100,7 +111,82 @@ var LogCategory;
     LogCategory["API"] = "api";
     LogCategory["BLOCKCHAIN"] = "blockchain";
 })(LogCategory || (exports.LogCategory = LogCategory = {}));
-// Main Logger Class
+var fs_1 = require("fs");
+var AuditLogger = /** @class */ (function () {
+    function AuditLogger(options) {
+        this.events = [];
+        if (options === null || options === void 0 ? void 0 : options.filePath) {
+            this.filePath = options.filePath;
+            if ((0, fs_1.existsSync)(this.filePath)) {
+                var lines = (0, fs_1.readFileSync)(this.filePath, "utf-8")
+                    .split("\n")
+                    .filter(Boolean);
+                this.events = lines.map(function (line) { return JSON.parse(line); });
+            }
+        }
+    }
+    AuditLogger.prototype.appendEvent = function (event) {
+        var prev = this.events.length > 0 ? this.events[this.events.length - 1] : undefined;
+        var id = "audit_".concat(Date.now(), "_").concat(Math.random().toString(36).slice(2, 8));
+        var timestamp = new Date();
+        var prevHash = (prev === null || prev === void 0 ? void 0 : prev.hash) || null;
+        var base = __assign(__assign({}, event), { id: id, timestamp: timestamp, prevHash: prevHash });
+        var hash = this.computeHash(base);
+        var fullEvent = __assign(__assign({}, base), { hash: hash });
+        this.events.push(fullEvent);
+        if (this.filePath) {
+            (0, fs_1.appendFileSync)(this.filePath, JSON.stringify(fullEvent) + "\n", "utf-8");
+        }
+        return fullEvent;
+    };
+    AuditLogger.prototype.getEvents = function (filter) {
+        if (!filter)
+            return __spreadArray([], this.events, true);
+        return this.events.filter(function (e) {
+            return Object.entries(filter).every(function (_a) {
+                var k = _a[0], v = _a[1];
+                return e[k] === v;
+            });
+        });
+    };
+    AuditLogger.prototype.export = function (format) {
+        if (format === void 0) { format = "json"; }
+        if (format === "json") {
+            return JSON.stringify(this.events, null, 2);
+        }
+        else if (format === "csv") {
+            var header = Object.keys(this.events[0] || {}).join(",");
+            var rows = this.events.map(function (e) {
+                return Object.values(e)
+                    .map(function (v) { return JSON.stringify(v); })
+                    .join(",");
+            });
+            return __spreadArray([header], rows, true).join("\n");
+        }
+        return "";
+    };
+    AuditLogger.prototype.verifyChain = function () {
+        for (var i = 0; i < this.events.length; ++i) {
+            var e = this.events[i];
+            var base = __assign({}, e);
+            delete base.hash;
+            var expectedHash = this.computeHash(base);
+            if (e.hash !== expectedHash)
+                return false;
+            if (i > 0 && e.prevHash !== this.events[i - 1].hash)
+                return false;
+        }
+        return true;
+    };
+    AuditLogger.prototype.computeHash = function (event) {
+        // Exclude hash field
+        var hash = event.hash, rest = __rest(event, ["hash"]);
+        return (0, crypto_1.createHash)("sha256").update(JSON.stringify(rest)).digest("hex");
+    };
+    return AuditLogger;
+}());
+exports.AuditLogger = AuditLogger;
+// Patch QISDDLogger to use AuditLogger
 var QISDDLogger = /** @class */ (function (_super) {
     __extends(QISDDLogger, _super);
     function QISDDLogger(config) {
@@ -109,29 +195,30 @@ var QISDDLogger = /** @class */ (function (_super) {
         _this.logEntries = [];
         _this.auditEvents = [];
         _this.performanceCounters = new Map();
-        _this.config = __assign({ level: LogLevel.INFO, maxEntries: 10000, enableConsole: true, enableFile: true, enableStructured: true, logDirectory: './logs', rotationInterval: 24 * 60 * 60 * 1000, compressionEnabled: true, encryptionEnabled: false, retentionDays: 90, bufferSize: 100, flushInterval: 5000, enableMetrics: true, enableCorrelation: true, sensitiveDataMasking: true }, config);
+        _this.config = __assign({ level: LogLevel.INFO, maxEntries: 10000, enableConsole: true, enableFile: true, enableStructured: true, logDirectory: "./logs", rotationInterval: 24 * 60 * 60 * 1000, compressionEnabled: true, encryptionEnabled: false, retentionDays: 90, bufferSize: 100, flushInterval: 5000, enableMetrics: true, enableCorrelation: true, sensitiveDataMasking: true }, config);
+        _this.auditLogger = new AuditLogger({ filePath: config.auditFilePath });
         _this.setupLogRotation();
         _this.setupPeriodicFlush();
         return _this;
     }
     // Core logging methods
     QISDDLogger.prototype.trace = function (message, data, context) {
-        this.log(LogLevel.TRACE, LogCategory.SYSTEM, 'trace', message, data, context);
+        this.log(LogLevel.TRACE, LogCategory.SYSTEM, "trace", message, data, context);
     };
     QISDDLogger.prototype.debug = function (message, data, context) {
-        this.log(LogLevel.DEBUG, LogCategory.SYSTEM, 'debug', message, data, context);
+        this.log(LogLevel.DEBUG, LogCategory.SYSTEM, "debug", message, data, context);
     };
     QISDDLogger.prototype.info = function (message, data, context) {
-        this.log(LogLevel.INFO, LogCategory.SYSTEM, 'info', message, data, context);
+        this.log(LogLevel.INFO, LogCategory.SYSTEM, "info", message, data, context);
     };
     QISDDLogger.prototype.warn = function (message, data, context) {
-        this.log(LogLevel.WARN, LogCategory.SYSTEM, 'warning', message, data, context);
+        this.log(LogLevel.WARN, LogCategory.SYSTEM, "warning", message, data, context);
     };
     QISDDLogger.prototype.error = function (message, error, data, context) {
-        this.log(LogLevel.ERROR, LogCategory.SYSTEM, 'error', message, data, context, error);
+        this.log(LogLevel.ERROR, LogCategory.SYSTEM, "error", message, data, context, error);
     };
     QISDDLogger.prototype.fatal = function (message, error, data, context) {
-        this.log(LogLevel.FATAL, LogCategory.SYSTEM, 'fatal', message, data, context, error);
+        this.log(LogLevel.FATAL, LogCategory.SYSTEM, "fatal", message, data, context, error);
     };
     // Category-specific logging methods
     QISDDLogger.prototype.quantum = function (level, event, message, data, context) {
@@ -146,13 +233,15 @@ var QISDDLogger = /** @class */ (function (_super) {
     QISDDLogger.prototype.audit = function (event) {
         this.auditEvents.push(event);
         // Emit for real-time processing
-        this.emit('auditEvent', event);
+        this.emit("auditEvent", event);
         // Log as structured entry
         this.log(LogLevel.INFO, LogCategory.AUDIT, event.action, "User ".concat(event.userId, " performed ").concat(event.action, " on ").concat(event.resource), event, {
             userId: event.userId,
             sessionId: event.sessionId,
-            component: 'audit'
+            component: "audit",
         });
+        // Append to auditLogger
+        this.auditLogger.appendEvent(__assign({}, event));
         // Trim audit events if needed
         if (this.auditEvents.length > this.config.maxEntries) {
             this.auditEvents = this.auditEvents.slice(-this.config.maxEntries);
@@ -170,7 +259,7 @@ var QISDDLogger = /** @class */ (function (_super) {
         var duration = Date.now() - startTime;
         this.performanceCounters.delete(operationId);
         var metrics = __assign({ duration: duration, memoryUsage: process.memoryUsage().heapUsed }, additionalMetrics);
-        this.log(LogLevel.INFO, LogCategory.PERFORMANCE, 'operation_completed', "Operation ".concat(operationId, " completed"), { operationId: operationId, metrics: metrics }, { operationId: operationId, component: 'performance' }, undefined, metrics);
+        this.log(LogLevel.INFO, LogCategory.PERFORMANCE, "operation_completed", "Operation ".concat(operationId, " completed"), { operationId: operationId, metrics: metrics }, { operationId: operationId, component: "performance" }, undefined, metrics);
         return metrics;
     };
     // Structured logging with correlation
@@ -189,15 +278,17 @@ var QISDDLogger = /** @class */ (function (_super) {
             category: category,
             event: event,
             message: message,
-            data: this.config.sensitiveDataMasking ? this.maskSensitiveData(data) : data,
+            data: this.config.sensitiveDataMasking
+                ? this.maskSensitiveData(data)
+                : data,
             context: context,
             error: error,
             stackTrace: error ? error.stack : undefined,
-            performance: performance
+            performance: performance,
         };
         this.logEntries.push(logEntry);
         // Emit for real-time processing
-        this.emit('logEntry', logEntry);
+        this.emit("logEntry", logEntry);
         // Console output
         if (this.config.enableConsole) {
             this.outputToConsole(logEntry);
@@ -205,7 +296,7 @@ var QISDDLogger = /** @class */ (function (_super) {
         // Async file writing (non-blocking)
         if (this.config.enableFile) {
             this.writeToFileAsync(logEntry).catch(function (err) {
-                console.error('Failed to write log to file:', err);
+                console.error("Failed to write log to file:", err);
             });
         }
         // Trim log entries if needed
@@ -279,17 +370,15 @@ var QISDDLogger = /** @class */ (function (_super) {
     QISDDLogger.prototype.generateSecurityReport = function (timeRange) {
         var auditEvents = this.getAuditEvents({
             startTime: timeRange.start,
-            endTime: timeRange.end
+            endTime: timeRange.end,
         });
         var logEntries = this.getLogEntries({
             startTime: timeRange.start,
             endTime: timeRange.end,
-            category: LogCategory.SECURITY
+            category: LogCategory.SECURITY,
         });
-        var failedAttempts = auditEvents.filter(function (e) { return e.result === 'failure'; });
-        var securityEvents = logEntries.filter(function (e) {
-            return e.level >= LogLevel.WARN && e.category === LogCategory.SECURITY;
-        });
+        var failedAttempts = auditEvents.filter(function (e) { return e.result === "failure"; });
+        var securityEvents = logEntries.filter(function (e) { return e.level >= LogLevel.WARN && e.category === LogCategory.SECURITY; });
         var userActivities = this.analyzeUserActivities(auditEvents);
         var threatIndicators = this.detectThreatIndicators(auditEvents, logEntries);
         var complianceStatus = this.assessCompliance(auditEvents);
@@ -297,28 +386,32 @@ var QISDDLogger = /** @class */ (function (_super) {
             period: timeRange,
             summary: {
                 totalEvents: auditEvents.length,
-                successfulOperations: auditEvents.filter(function (e) { return e.result === 'success'; }).length,
+                successfulOperations: auditEvents.filter(function (e) { return e.result === "success"; })
+                    .length,
                 failedOperations: failedAttempts.length,
                 securityIncidents: securityEvents.length,
-                uniqueUsers: new Set(auditEvents.map(function (e) { return e.userId; }).filter(Boolean)).size,
-                averageRiskScore: this.calculateAverageRiskScore(auditEvents)
+                uniqueUsers: new Set(auditEvents.map(function (e) { return e.userId; }).filter(Boolean))
+                    .size,
+                averageRiskScore: this.calculateAverageRiskScore(auditEvents),
             },
             failedAttempts: failedAttempts.slice(0, 100), // Top 100
             securityEvents: securityEvents.slice(0, 100), // Top 100
             userActivities: userActivities,
             threatIndicators: threatIndicators,
             complianceStatus: complianceStatus,
-            recommendations: this.generateSecurityRecommendations(failedAttempts, securityEvents)
+            recommendations: this.generateSecurityRecommendations(failedAttempts, securityEvents),
         };
     };
     QISDDLogger.prototype.generatePerformanceReport = function (timeRange) {
         var performanceLogs = this.getLogEntries({
             startTime: timeRange.start,
             endTime: timeRange.end,
-            category: LogCategory.PERFORMANCE
+            category: LogCategory.PERFORMANCE,
         }).filter(function (e) { return e.performance; });
         var durations = performanceLogs.map(function (e) { return e.performance.duration; });
-        var memoryUsages = performanceLogs.map(function (e) { return e.performance.memoryUsage; }).filter(Boolean);
+        var memoryUsages = performanceLogs
+            .map(function (e) { return e.performance.memoryUsage; })
+            .filter(Boolean);
         return {
             period: timeRange,
             summary: {
@@ -328,35 +421,35 @@ var QISDDLogger = /** @class */ (function (_super) {
                 p95Duration: this.calculatePercentile(durations, 95),
                 p99Duration: this.calculatePercentile(durations, 99),
                 averageMemoryUsage: memoryUsages.reduce(function (a, b) { return a + b; }, 0) / memoryUsages.length || 0,
-                slowestOperations: this.findSlowestOperations(performanceLogs, 10)
+                slowestOperations: this.findSlowestOperations(performanceLogs, 10),
             },
             trends: this.analyzePerformanceTrends(performanceLogs),
             bottlenecks: this.identifyBottlenecks(performanceLogs),
-            recommendations: this.generatePerformanceRecommendations(performanceLogs)
+            recommendations: this.generatePerformanceRecommendations(performanceLogs),
         };
     };
     // Export and backup
     QISDDLogger.prototype.exportLogs = function () {
         return __awaiter(this, arguments, void 0, function (format) {
             var data;
-            if (format === void 0) { format = 'json'; }
+            if (format === void 0) { format = "json"; }
             return __generator(this, function (_a) {
                 data = {
                     metadata: {
                         exportTime: new Date(),
                         totalEntries: this.logEntries.length,
                         totalAuditEvents: this.auditEvents.length,
-                        format: format
+                        format: format,
                     },
                     logEntries: this.logEntries,
-                    auditEvents: this.auditEvents
+                    auditEvents: this.auditEvents,
                 };
                 switch (format) {
-                    case 'json':
+                    case "json":
                         return [2 /*return*/, JSON.stringify(data, null, 2)];
-                    case 'ndjson':
-                        return [2 /*return*/, this.logEntries.map(function (entry) { return JSON.stringify(entry); }).join('\n')];
-                    case 'csv':
+                    case "ndjson":
+                        return [2 /*return*/, this.logEntries.map(function (entry) { return JSON.stringify(entry); }).join("\n")];
+                    case "csv":
                         return [2 /*return*/, this.convertToCSV(this.logEntries)];
                     default:
                         throw new Error("Unsupported format: ".concat(format));
@@ -370,15 +463,15 @@ var QISDDLogger = /** @class */ (function (_super) {
         return __awaiter(this, void 0, void 0, function () {
             var cutoffDate, beforeLogCount, beforeAuditCount;
             return __generator(this, function (_a) {
-                cutoffDate = new Date(Date.now() - (this.config.retentionDays * 24 * 60 * 60 * 1000));
+                cutoffDate = new Date(Date.now() - this.config.retentionDays * 24 * 60 * 60 * 1000);
                 beforeLogCount = this.logEntries.length;
                 beforeAuditCount = this.auditEvents.length;
                 this.logEntries = this.logEntries.filter(function (entry) { return entry.timestamp > cutoffDate; });
                 this.auditEvents = this.auditEvents.filter(function (event) { return event.timestamp > cutoffDate; });
-                this.info('Log cleanup completed', {
+                this.info("Log cleanup completed", {
                     removedLogEntries: beforeLogCount - this.logEntries.length,
                     removedAuditEvents: beforeAuditCount - this.auditEvents.length,
-                    cutoffDate: cutoffDate
+                    cutoffDate: cutoffDate,
                 });
                 return [2 /*return*/];
             });
@@ -394,23 +487,31 @@ var QISDDLogger = /** @class */ (function (_super) {
     };
     // Private helper methods
     QISDDLogger.prototype.generateId = function () {
-        return "log_".concat(Date.now(), "_").concat((0, crypto_1.randomBytes)(4).toString('hex'));
+        return "log_".concat(Date.now(), "_").concat((0, crypto_1.randomBytes)(4).toString("hex"));
     };
     QISDDLogger.prototype.maskSensitiveData = function (data) {
-        if (!data || typeof data !== 'object') {
+        if (!data || typeof data !== "object") {
             return data;
         }
         var sensitiveFields = [
-            'password', 'token', 'secret', 'key', 'credentials',
-            'ssn', 'sin', 'creditCard', 'bankAccount', 'pin'
+            "password",
+            "token",
+            "secret",
+            "key",
+            "credentials",
+            "ssn",
+            "sin",
+            "creditCard",
+            "bankAccount",
+            "pin",
         ];
         var masked = __assign({}, data);
         var _loop_1 = function (key, value) {
             var lowerKey = key.toLowerCase();
             if (sensitiveFields.some(function (field) { return lowerKey.includes(field); })) {
-                masked[key] = '***MASKED***';
+                masked[key] = "***MASKED***";
             }
-            else if (typeof value === 'object' && value !== null) {
+            else if (typeof value === "object" && value !== null) {
                 masked[key] = this_1.maskSensitiveData(value);
             }
         };
@@ -425,28 +526,29 @@ var QISDDLogger = /** @class */ (function (_super) {
         var _a;
         var _b;
         var levelColors = (_a = {},
-            _a[LogLevel.TRACE] = '\x1b[37m',
-            _a[LogLevel.DEBUG] = '\x1b[36m',
-            _a[LogLevel.INFO] = '\x1b[32m',
-            _a[LogLevel.WARN] = '\x1b[33m',
-            _a[LogLevel.ERROR] = '\x1b[31m',
-            _a[LogLevel.FATAL] = '\x1b[35m' // Magenta
-        ,
+            _a[LogLevel.TRACE] = "\x1b[37m",
+            _a[LogLevel.DEBUG] = "\x1b[36m",
+            _a[LogLevel.INFO] = "\x1b[32m",
+            _a[LogLevel.WARN] = "\x1b[33m",
+            _a[LogLevel.ERROR] = "\x1b[31m",
+            _a[LogLevel.FATAL] = "\x1b[35m",
             _a);
-        var reset = '\x1b[0m';
+        var reset = "\x1b[0m";
         var color = levelColors[entry.level];
         var levelName = LogLevel[entry.level];
         var timestamp = entry.timestamp.toISOString();
-        var context = entry.context ? " [".concat(entry.context.component, "]") : '';
-        var correlationId = ((_b = entry.context) === null || _b === void 0 ? void 0 : _b.correlationId) ? " (".concat(entry.context.correlationId, ")") : '';
+        var context = entry.context ? " [".concat(entry.context.component, "]") : "";
+        var correlationId = ((_b = entry.context) === null || _b === void 0 ? void 0 : _b.correlationId)
+            ? " (".concat(entry.context.correlationId, ")")
+            : "";
         console.log("".concat(color).concat(timestamp, " ").concat(levelName).concat(context).concat(correlationId, ": ").concat(entry.message).concat(reset));
         if (entry.data && this.config.level <= LogLevel.DEBUG) {
-            console.log('  Data:', entry.data);
+            console.log("  Data:", entry.data);
         }
         if (entry.error) {
-            console.error('  Error:', entry.error.message);
+            console.error("  Error:", entry.error.message);
             if (entry.stackTrace && this.config.level <= LogLevel.DEBUG) {
-                console.error('  Stack:', entry.stackTrace);
+                console.error("  Stack:", entry.stackTrace);
             }
         }
     };
@@ -463,16 +565,16 @@ var QISDDLogger = /** @class */ (function (_super) {
                         filename = this.getLogFilename();
                         filepath = (0, path_1.join)(this.config.logDirectory, filename);
                         logLine = this.config.enableStructured
-                            ? JSON.stringify(entry) + '\n'
-                            : this.formatPlainTextLog(entry) + '\n';
-                        return [4 /*yield*/, (0, promises_1.appendFile)(filepath, logLine, 'utf-8')];
+                            ? JSON.stringify(entry) + "\n"
+                            : this.formatPlainTextLog(entry) + "\n";
+                        return [4 /*yield*/, (0, promises_1.appendFile)(filepath, logLine, "utf-8")];
                     case 2:
                         _a.sent();
                         return [3 /*break*/, 4];
                     case 3:
                         error_1 = _a.sent();
                         // Don't log errors about logging to prevent infinite loops
-                        console.error('Failed to write log entry to file:', error_1);
+                        console.error("Failed to write log entry to file:", error_1);
                         return [3 /*break*/, 4];
                     case 4: return [2 /*return*/];
                 }
@@ -480,13 +582,13 @@ var QISDDLogger = /** @class */ (function (_super) {
         });
     };
     QISDDLogger.prototype.getLogFilename = function () {
-        var date = new Date().toISOString().split('T')[0];
+        var date = new Date().toISOString().split("T")[0];
         return "qisdd-".concat(date, ".log");
     };
     QISDDLogger.prototype.formatPlainTextLog = function (entry) {
         var timestamp = entry.timestamp.toISOString();
         var level = LogLevel[entry.level];
-        var context = entry.context ? " [".concat(entry.context.component, "]") : '';
+        var context = entry.context ? " [".concat(entry.context.component, "]") : "";
         var line = "".concat(timestamp, " ").concat(level).concat(context, ": ").concat(entry.message);
         if (entry.data) {
             line += " | Data: ".concat(JSON.stringify(entry.data));
@@ -512,9 +614,9 @@ var QISDDLogger = /** @class */ (function (_super) {
     QISDDLogger.prototype.setupPeriodicFlush = function () {
         var _this = this;
         setInterval(function () {
-            _this.emit('flush', {
+            _this.emit("flush", {
                 logEntries: _this.logEntries.length,
-                auditEvents: _this.auditEvents.length
+                auditEvents: _this.auditEvents.length,
             });
         }, this.config.flushInterval);
     };
@@ -522,7 +624,7 @@ var QISDDLogger = /** @class */ (function (_super) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Implementation for log file rotation
-                this.info('Log rotation initiated');
+                this.info("Log rotation initiated");
                 return [2 /*return*/];
             });
         });
@@ -542,15 +644,15 @@ var QISDDLogger = /** @class */ (function (_super) {
                     uniqueResources: new Set(),
                     averageRiskScore: 0,
                     firstAction: event.timestamp,
-                    lastAction: event.timestamp
+                    lastAction: event.timestamp,
                 });
             }
             var stats = userStats.get(event.userId);
             stats.totalActions++;
-            if (event.result === 'success') {
+            if (event.result === "success") {
                 stats.successfulActions++;
             }
-            else if (event.result === 'failure') {
+            else if (event.result === "failure") {
                 stats.failedActions++;
             }
             stats.uniqueResources.add(event.resource);
@@ -567,17 +669,19 @@ var QISDDLogger = /** @class */ (function (_super) {
         var indicators = [];
         // Multiple failed attempts
         var failuresByUser = new Map();
-        auditEvents.filter(function (e) { return e.result === 'failure'; }).forEach(function (event) {
-            var count = failuresByUser.get(event.userId || 'unknown') || 0;
-            failuresByUser.set(event.userId || 'unknown', count + 1);
+        auditEvents
+            .filter(function (e) { return e.result === "failure"; })
+            .forEach(function (event) {
+            var count = failuresByUser.get(event.userId || "unknown") || 0;
+            failuresByUser.set(event.userId || "unknown", count + 1);
         });
         failuresByUser.forEach(function (count, userId) {
             if (count >= 5) {
                 indicators.push({
-                    type: 'multiple_failures',
+                    type: "multiple_failures",
                     userId: userId,
                     count: count,
-                    severity: count >= 10 ? 'high' : 'medium'
+                    severity: count >= 10 ? "high" : "medium",
                 });
             }
         });
@@ -585,10 +689,11 @@ var QISDDLogger = /** @class */ (function (_super) {
         var highRiskEvents = auditEvents.filter(function (e) { return (e.riskScore || 0) > 0.8; });
         if (highRiskEvents.length > 0) {
             indicators.push({
-                type: 'high_risk_activity',
+                type: "high_risk_activity",
                 count: highRiskEvents.length,
-                averageRiskScore: highRiskEvents.reduce(function (sum, e) { return sum + (e.riskScore || 0); }, 0) / highRiskEvents.length,
-                severity: 'high'
+                averageRiskScore: highRiskEvents.reduce(function (sum, e) { return sum + (e.riskScore || 0); }, 0) /
+                    highRiskEvents.length,
+                severity: "high",
             });
         }
         return indicators;
@@ -604,19 +709,19 @@ var QISDDLogger = /** @class */ (function (_super) {
                     total: 0,
                     compliant: 0,
                     nonCompliant: 0,
-                    pending: 0
+                    pending: 0,
                 });
             }
             var stats = complianceByRegulation.get(regulation);
             stats.total++;
             switch (event.compliance.status) {
-                case 'compliant':
+                case "compliant":
                     stats.compliant++;
                     break;
-                case 'non-compliant':
+                case "non-compliant":
                     stats.nonCompliant++;
                     break;
-                case 'pending':
+                case "pending":
                     stats.pending++;
                     break;
             }
@@ -626,21 +731,23 @@ var QISDDLogger = /** @class */ (function (_super) {
     QISDDLogger.prototype.generateSecurityRecommendations = function (failedAttempts, securityEvents) {
         var recommendations = [];
         if (failedAttempts.length > 100) {
-            recommendations.push('Consider implementing rate limiting or account lockout policies');
+            recommendations.push("Consider implementing rate limiting or account lockout policies");
         }
         if (securityEvents.length > 50) {
-            recommendations.push('Review security event patterns and consider additional monitoring');
+            recommendations.push("Review security event patterns and consider additional monitoring");
         }
         var highRiskAttempts = failedAttempts.filter(function (e) { return (e.riskScore || 0) > 0.7; });
         if (highRiskAttempts.length > 10) {
-            recommendations.push('Implement additional authentication factors for high-risk scenarios');
+            recommendations.push("Implement additional authentication factors for high-risk scenarios");
         }
         return recommendations;
     };
     QISDDLogger.prototype.calculateMedian = function (numbers) {
         var sorted = __spreadArray([], numbers, true).sort(function (a, b) { return a - b; });
         var mid = Math.floor(sorted.length / 2);
-        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        return sorted.length % 2 !== 0
+            ? sorted[mid]
+            : (sorted[mid - 1] + sorted[mid]) / 2;
     };
     QISDDLogger.prototype.calculatePercentile = function (numbers, percentile) {
         var sorted = __spreadArray([], numbers, true).sort(function (a, b) { return a - b; });
@@ -651,7 +758,8 @@ var QISDDLogger = /** @class */ (function (_super) {
         var eventsWithRisk = auditEvents.filter(function (e) { return e.riskScore !== undefined; });
         if (eventsWithRisk.length === 0)
             return 0;
-        return eventsWithRisk.reduce(function (sum, e) { return sum + e.riskScore; }, 0) / eventsWithRisk.length;
+        return (eventsWithRisk.reduce(function (sum, e) { return sum + e.riskScore; }, 0) /
+            eventsWithRisk.length);
     };
     QISDDLogger.prototype.findSlowestOperations = function (logs, count) {
         return logs
@@ -662,12 +770,15 @@ var QISDDLogger = /** @class */ (function (_super) {
             event: log.event,
             duration: log.performance.duration,
             timestamp: log.timestamp,
-            context: log.context
+            context: log.context,
         }); });
     };
     QISDDLogger.prototype.analyzePerformanceTrends = function (logs) {
         // Implementation for performance trend analysis
-        return { trend: 'stable', analysis: 'Performance metrics within normal ranges' };
+        return {
+            trend: "stable",
+            analysis: "Performance metrics within normal ranges",
+        };
     };
     QISDDLogger.prototype.identifyBottlenecks = function (logs) {
         // Implementation for bottleneck identification
@@ -675,16 +786,22 @@ var QISDDLogger = /** @class */ (function (_super) {
     };
     QISDDLogger.prototype.generatePerformanceRecommendations = function (logs) {
         var recommendations = [];
-        var slowOperations = logs.filter(function (log) {
-            return log.performance && log.performance.duration > 1000;
-        });
+        var slowOperations = logs.filter(function (log) { return log.performance && log.performance.duration > 1000; });
         if (slowOperations.length > logs.length * 0.1) {
-            recommendations.push('Consider optimizing slow operations or implementing caching');
+            recommendations.push("Consider optimizing slow operations or implementing caching");
         }
         return recommendations;
     };
     QISDDLogger.prototype.convertToCSV = function (logEntries) {
-        var headers = ['timestamp', 'level', 'category', 'event', 'message', 'userId', 'component'];
+        var headers = [
+            "timestamp",
+            "level",
+            "category",
+            "event",
+            "message",
+            "userId",
+            "component",
+        ];
         var rows = logEntries.map(function (entry) {
             var _a, _b;
             return [
@@ -693,11 +810,23 @@ var QISDDLogger = /** @class */ (function (_super) {
                 entry.category,
                 entry.event,
                 entry.message.replace(/"/g, '""'), // Escape quotes
-                ((_a = entry.context) === null || _a === void 0 ? void 0 : _a.userId) || '',
-                ((_b = entry.context) === null || _b === void 0 ? void 0 : _b.component) || ''
+                ((_a = entry.context) === null || _a === void 0 ? void 0 : _a.userId) || "",
+                ((_b = entry.context) === null || _b === void 0 ? void 0 : _b.component) || "",
             ];
         });
-        return __spreadArray([headers], rows, true).map(function (row) { return row.map(function (cell) { return "\"".concat(cell, "\""); }).join(','); }).join('\n');
+        return __spreadArray([headers], rows, true).map(function (row) { return row.map(function (cell) { return "\"".concat(cell, "\""); }).join(","); })
+            .join("\n");
+    };
+    // Expose auditLogger methods
+    QISDDLogger.prototype.getAuditTrail = function (filter) {
+        return this.auditLogger.getEvents(filter);
+    };
+    QISDDLogger.prototype.exportAuditTrail = function (format) {
+        if (format === void 0) { format = "json"; }
+        return this.auditLogger.export(format);
+    };
+    QISDDLogger.prototype.verifyAuditTrail = function () {
+        return this.auditLogger.verifyChain();
     };
     return QISDDLogger;
 }(events_1.EventEmitter));

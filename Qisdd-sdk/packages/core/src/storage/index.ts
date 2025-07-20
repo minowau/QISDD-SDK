@@ -1,18 +1,18 @@
 // QISDD-SDK Storage Management & State Persistence
 // packages/core/src/storage/index.ts
 
-import { EventEmitter } from 'events';
-import { createHash, randomBytes } from 'crypto';
-import { promises as fs } from 'fs';
-import { join, dirname } from 'path';
-import { LoggerFactory } from '../logging';
-import { QuantumState, QuantumStateType } from '../quantum/superposition';
+import { EventEmitter } from "events";
+import { createHash, randomBytes } from "crypto";
+import { promises as fs } from "fs";
+import { join, dirname } from "path";
+import { LoggerFactory } from "../logging";
+import { QuantumState, QuantumStateType } from "../quantum/superposition";
 
 const logger = LoggerFactory.createQuantumLogger();
 
 // Storage Interfaces
 export interface StorageConfig {
-  storageType: 'memory' | 'file' | 'database' | 'hybrid';
+  storageType: "memory" | "file" | "database" | "hybrid";
   basePath?: string;
   compression: boolean;
   encryption: boolean;
@@ -52,14 +52,14 @@ export interface StateMetadata {
 export interface StorageLocation {
   primary: string;
   replicas?: string[];
-  storageType: 'memory' | 'file' | 'database';
+  storageType: "memory" | "file" | "database";
   lastAccessed: Date;
   accessCount: number;
 }
 
 export interface AccessRecord {
   timestamp: Date;
-  operation: 'read' | 'write' | 'verify' | 'replicate';
+  operation: "read" | "write" | "verify" | "replicate";
   success: boolean;
   duration: number;
   error?: string;
@@ -92,10 +92,10 @@ export class StateManager extends EventEmitter {
 
   constructor(config: Partial<StorageConfig> = {}) {
     super();
-    
+
     this.config = {
-      storageType: 'hybrid',
-      basePath: './data/quantum-states',
+      storageType: "hybrid",
+      basePath: "./data/quantum-states",
       compression: true,
       encryption: true,
       replication: true,
@@ -103,23 +103,26 @@ export class StateManager extends EventEmitter {
       persistenceInterval: 30000, // 30 seconds
       cacheTTL: 300000, // 5 minutes
       enableMetrics: true,
-      ...config
+      ...config,
     };
 
     this.initializeStorage();
     this.initializeMetrics();
     this.setupPeriodicPersistence();
-    
-    logger.info('State manager initialized', { config: this.config });
+
+    logger.info("State manager initialized", { config: this.config });
   }
 
   private initializeStorage(): void {
     this.fileStorage = new FileStorageAdapter(this.config.basePath!);
-    
-    if (this.config.storageType === 'database' || this.config.storageType === 'hybrid') {
+
+    if (
+      this.config.storageType === "database" ||
+      this.config.storageType === "hybrid"
+    ) {
       this.databaseStorage = new DatabaseStorageAdapter();
     }
-    
+
     this.compressionEngine = new CompressionEngine();
     this.encryptionEngine = new EncryptionEngine();
   }
@@ -135,7 +138,7 @@ export class StateManager extends EventEmitter {
       replicationOverhead: 0,
       averageAccessTime: 0,
       integrityFailures: 0,
-      cacheHitRate: 0
+      cacheHitRate: 0,
     };
   }
 
@@ -153,39 +156,39 @@ export class StateManager extends EventEmitter {
     logger.startPerformanceTimer(operationId);
 
     try {
-      logger.debug('Saving quantum state', {
+      logger.debug("Saving quantum state", {
         stateId: state.id,
         dataSize: state.ciphertext.length,
-        stateType: state.stateType
+        stateType: state.stateType,
       });
 
       // Create state record
       const record = await this.createStateRecord(state);
-      
+
       // Store based on configuration
       await this.storeRecord(record);
-      
+
       // Update index
       this.updateStateIndex(record.dataId, record.id);
-      
+
       // Update metrics
-      this.updateMetrics('save', record);
-      
+      this.updateMetrics("save", record);
+
       const performance = logger.endPerformanceTimer(operationId);
-      
-      logger.info('Quantum state saved successfully', {
+
+      logger.info("Quantum state saved successfully", {
         stateId: state.id,
         storageLocation: record.location?.primary,
-        performance
+        performance,
       });
 
-      this.emit('stateSaved', { stateId: state.id, record, performance });
-      
+      this.emit("stateSaved", { stateId: state.id, record, performance });
+
       return record.id;
     } catch (error) {
-      logger.error('Failed to save quantum state', error as Error, {
+      logger.error("Failed to save quantum state", error as Error, {
         stateId: state.id,
-        operationId
+        operationId,
       });
       throw error;
     }
@@ -196,61 +199,65 @@ export class StateManager extends EventEmitter {
     logger.startPerformanceTimer(operationId);
 
     try {
-      logger.debug('Retrieving quantum state', { stateId });
+      logger.debug("Retrieving quantum state", { stateId });
 
       // Check memory cache first
       let record = this.memoryCache.get(stateId);
       let cacheHit = !!record;
-      
+
       if (!record) {
         // Load from persistent storage
         record = await this.loadRecord(stateId);
-        
+
         if (record && this.shouldCache(record)) {
           this.memoryCache.set(stateId, record);
         }
       }
 
       if (!record) {
-        logger.warn('Quantum state not found', { stateId });
+        logger.warn("Quantum state not found", { stateId });
         return null;
       }
 
       // Verify integrity
       const integrityValid = await this.verifyIntegrity(record);
       if (!integrityValid) {
-        logger.error('State integrity verification failed', undefined, { stateId });
+        logger.error("State integrity verification failed", undefined, {
+          stateId,
+        });
         this.metrics.integrityFailures++;
-        
+
         // Attempt recovery from replica
         record = await this.recoverFromReplica(stateId);
         if (!record) {
-          throw new Error(`State integrity compromised and recovery failed: ${stateId}`);
+          throw new Error(
+            `State integrity compromised and recovery failed: ${stateId}`,
+          );
         }
       }
 
       // Convert record back to QuantumState
       const quantumState = await this.recordToQuantumState(record);
-      
+
       // Update access history
-      this.recordAccess(record, 'read', true);
-      
+      this.recordAccess(record, "read", true);
+
       const performance = logger.endPerformanceTimer(operationId);
-      this.updateMetrics('get', record, cacheHit);
-      
-      logger.debug('Quantum state retrieved successfully', {
+      this.updateMetrics("get", record, cacheHit);
+
+      logger.debug("Quantum state retrieved successfully", {
         stateId,
         cacheHit,
-        performance
+        performance,
       });
 
-      this.emit('stateAccessed', { stateId, cacheHit, performance });
-      
+      this.emit("stateAccessed", { stateId, cacheHit, performance });
+
       return quantumState;
     } catch (error) {
-      logger.error('Failed to retrieve quantum state', error as Error, {
+      logger.error("Failed to retrieve quantum state", error as Error, {
         stateId,
-        operationId
+        operationId,
       });
       throw error;
     }
@@ -261,11 +268,11 @@ export class StateManager extends EventEmitter {
     logger.startPerformanceTimer(operationId);
 
     try {
-      logger.debug('Retrieving quantum states for data', { dataId });
+      logger.debug("Retrieving quantum states for data", { dataId });
 
       const stateIds = this.stateIndex.get(dataId);
       if (!stateIds || stateIds.size === 0) {
-        logger.warn('No states found for data', { dataId });
+        logger.warn("No states found for data", { dataId });
         return [];
       }
 
@@ -277,42 +284,48 @@ export class StateManager extends EventEmitter {
             states.push(state);
           }
         } catch (error) {
-          logger.warn('Failed to retrieve individual state', {
+          logger.warn("Failed to retrieve individual state", {
             stateId,
-            error: (error as Error).message
+            error: (error as Error).message,
           });
         }
       });
 
       await Promise.all(retrievalPromises);
-      
+
       // Sort by state index
       states.sort((a, b) => a.index - b.index);
-      
+
       const performance = logger.endPerformanceTimer(operationId);
-      
-      logger.info('Retrieved quantum states for data', {
+
+      logger.info("Retrieved quantum states for data", {
         dataId,
         stateCount: states.length,
-        performance
+        performance,
       });
 
       return states;
     } catch (error) {
-      logger.error('Failed to retrieve quantum states', error as Error, {
+      logger.error("Failed to retrieve quantum states", error as Error, {
         dataId,
-        operationId
+        operationId,
       });
       throw error;
     }
   }
 
-  public async updateState(stateId: string, updates: Partial<QuantumState>): Promise<boolean> {
+  public async updateState(
+    stateId: string,
+    updates: Partial<QuantumState>,
+  ): Promise<boolean> {
     const operationId = `update_state_${Date.now()}`;
     logger.startPerformanceTimer(operationId);
 
     try {
-      logger.debug('Updating quantum state', { stateId, updates: Object.keys(updates) });
+      logger.debug("Updating quantum state", {
+        stateId,
+        updates: Object.keys(updates),
+      });
 
       const record = await this.loadRecord(stateId);
       if (!record) {
@@ -327,27 +340,27 @@ export class StateManager extends EventEmitter {
       // Create new record with updates
       const updatedRecord = await this.createStateRecord(updatedState);
       updatedRecord.id = record.id; // Keep same ID
-      
+
       // Store updated record
       await this.storeRecord(updatedRecord);
-      
+
       // Update memory cache
       this.memoryCache.set(stateId, updatedRecord);
-      
+
       const performance = logger.endPerformanceTimer(operationId);
-      
-      logger.info('Quantum state updated successfully', {
+
+      logger.info("Quantum state updated successfully", {
         stateId,
-        performance
+        performance,
       });
 
-      this.emit('stateUpdated', { stateId, updates, performance });
-      
+      this.emit("stateUpdated", { stateId, updates, performance });
+
       return true;
     } catch (error) {
-      logger.error('Failed to update quantum state', error as Error, {
+      logger.error("Failed to update quantum state", error as Error, {
         stateId,
-        operationId
+        operationId,
       });
       return false;
     }
@@ -358,17 +371,18 @@ export class StateManager extends EventEmitter {
     logger.startPerformanceTimer(operationId);
 
     try {
-      logger.debug('Deleting quantum state', { stateId });
+      logger.debug("Deleting quantum state", { stateId });
 
-      const record = this.memoryCache.get(stateId) || await this.loadRecord(stateId);
+      const record =
+        this.memoryCache.get(stateId) || (await this.loadRecord(stateId));
       if (!record) {
-        logger.warn('State not found for deletion', { stateId });
+        logger.warn("State not found for deletion", { stateId });
         return false;
       }
 
       // Remove from memory cache
       this.memoryCache.delete(stateId);
-      
+
       // Remove from state index
       const stateIds = this.stateIndex.get(record.dataId);
       if (stateIds) {
@@ -377,31 +391,31 @@ export class StateManager extends EventEmitter {
           this.stateIndex.delete(record.dataId);
         }
       }
-      
+
       // Delete from persistent storage
       await this.deleteRecord(stateId);
-      
+
       // Delete replicas
       if (record.location?.replicas) {
         for (const replicaLocation of record.location.replicas) {
           await this.deleteReplica(stateId, replicaLocation);
         }
       }
-      
+
       const performance = logger.endPerformanceTimer(operationId);
-      
-      logger.info('Quantum state deleted successfully', {
+
+      logger.info("Quantum state deleted successfully", {
         stateId,
-        performance
+        performance,
       });
 
-      this.emit('stateDeleted', { stateId, performance });
-      
+      this.emit("stateDeleted", { stateId, performance });
+
       return true;
     } catch (error) {
-      logger.error('Failed to delete quantum state', error as Error, {
+      logger.error("Failed to delete quantum state", error as Error, {
         stateId,
-        operationId
+        operationId,
       });
       return false;
     }
@@ -412,7 +426,7 @@ export class StateManager extends EventEmitter {
     logger.startPerformanceTimer(operationId);
 
     try {
-      logger.info('Starting integrity verification for all states');
+      logger.info("Starting integrity verification for all states");
 
       const report: IntegrityReport = {
         totalStates: 0,
@@ -421,45 +435,52 @@ export class StateManager extends EventEmitter {
         missingStates: 0,
         repairedStates: 0,
         irreparableStates: 0,
-        details: []
+        details: [],
       };
 
       // Verify memory cache states
-      await Promise.all(Array.from(this.memoryCache.entries()).map(async ([stateId, record]) => {
-        report.totalStates++;
-        
-        try {
-          const valid = await this.verifyIntegrity(record);
-          if (valid) {
-            report.verifiedStates++;
-          } else {
-            report.corruptedStates++;
-            
-            // Attempt repair
-            const repaired = await this.repairState(stateId);
-            if (repaired) {
-              report.repairedStates++;
-            } else {
-              report.irreparableStates++;
+      await Promise.all(
+        Array.from(this.memoryCache.entries()).map(
+          async ([stateId, record]) => {
+            report.totalStates++;
+
+            try {
+              const valid = await this.verifyIntegrity(record);
+              if (valid) {
+                report.verifiedStates++;
+              } else {
+                report.corruptedStates++;
+
+                // Attempt repair
+                const repaired = await this.repairState(stateId);
+                if (repaired) {
+                  report.repairedStates++;
+                } else {
+                  report.irreparableStates++;
+                }
+              }
+            } catch (error) {
+              report.missingStates++;
+              report.details.push({
+                stateId,
+                issue: "verification_failed",
+                error: (error as Error).message,
+              });
             }
-          }
-        } catch (error) {
-          report.missingStates++;
-          report.details.push({
-            stateId,
-            issue: 'verification_failed',
-            error: (error as Error).message
-          });
-        }
-      }));
+          },
+        ),
+      );
 
       // Verify persistent storage (if applicable)
-      if (this.config.storageType === 'file' || this.config.storageType === 'hybrid') {
+      if (
+        this.config.storageType === "file" ||
+        this.config.storageType === "hybrid"
+      ) {
         const fileStates = await this.fileStorage.listStates();
         for (const stateId of fileStates) {
           if (!this.memoryCache.has(stateId)) {
             report.totalStates++;
-            
+
             try {
               const record = await this.loadRecord(stateId);
               if (record) {
@@ -476,8 +497,8 @@ export class StateManager extends EventEmitter {
               report.missingStates++;
               report.details.push({
                 stateId,
-                issue: 'load_failed',
-                error: (error as Error).message
+                issue: "load_failed",
+                error: (error as Error).message,
               });
             }
           }
@@ -485,17 +506,19 @@ export class StateManager extends EventEmitter {
       }
 
       const performance = logger.endPerformanceTimer(operationId);
-      
-      logger.info('Integrity verification completed', {
+
+      logger.info("Integrity verification completed", {
         ...report,
-        performance
+        performance,
       });
 
-      this.emit('integrityVerificationCompleted', { report, performance });
-      
+      this.emit("integrityVerificationCompleted", { report, performance });
+
       return report;
     } catch (error) {
-      logger.error('Integrity verification failed', error as Error, { operationId });
+      logger.error("Integrity verification failed", error as Error, {
+        operationId,
+      });
       throw error;
     }
   }
@@ -505,7 +528,7 @@ export class StateManager extends EventEmitter {
   }
 
   public async cleanup(): Promise<void> {
-    logger.info('Starting storage cleanup');
+    logger.info("Starting storage cleanup");
 
     try {
       // Clean expired cache entries
@@ -520,18 +543,18 @@ export class StateManager extends EventEmitter {
       // Clean old access records
       for (const record of Array.from(this.memoryCache.values())) {
         record.accessHistory = record.accessHistory.filter(
-          access => now - access.timestamp.getTime() < 24 * 60 * 60 * 1000 // Keep 24 hours
+          (access) => now - access.timestamp.getTime() < 24 * 60 * 60 * 1000, // Keep 24 hours
         );
       }
 
-      logger.info('Storage cleanup completed');
+      logger.info("Storage cleanup completed");
     } catch (error) {
-      logger.error('Storage cleanup failed', error as Error);
+      logger.error("Storage cleanup failed", error as Error);
     }
   }
 
   public async destroy(): Promise<void> {
-    logger.info('Destroying state manager');
+    logger.info("Destroying state manager");
 
     if (this.persistenceTimer) {
       clearInterval(this.persistenceTimer);
@@ -550,8 +573,8 @@ export class StateManager extends EventEmitter {
     }
 
     this.removeAllListeners();
-    
-    logger.info('State manager destroyed');
+
+    logger.info("State manager destroyed");
   }
 
   // Private helper methods
@@ -571,11 +594,13 @@ export class StateManager extends EventEmitter {
       processedData = await this.encryptionEngine.encrypt(processedData);
     }
 
-    const checksumSHA256 = createHash('sha256').update(processedData).digest('hex');
+    const checksumSHA256 = createHash("sha256")
+      .update(processedData)
+      .digest("hex");
 
     const record: StateRecord = {
       id: state.id,
-      dataId: state.id.split('_state_')[0] || state.id, // Extract dataId from stateId
+      dataId: state.id.split("_state_")[0] || state.id, // Extract dataId from stateId
       stateIndex: state.index,
       createdAt: state.createdAt,
       updatedAt: state.updatedAt,
@@ -585,15 +610,17 @@ export class StateManager extends EventEmitter {
       metadata: {
         originalSize,
         compressedSize: this.config.compression ? compressedSize : undefined,
-        compressionRatio: this.config.compression ? compressedSize / originalSize : undefined,
+        compressionRatio: this.config.compression
+          ? compressedSize / originalSize
+          : undefined,
         checksumSHA256,
-        encryptionKeyId: this.config.encryption ? 'default' : undefined,
+        encryptionKeyId: this.config.encryption ? "default" : undefined,
         replicationFactor: this.config.replication ? 2 : 1,
         lastVerified: new Date(),
         integrityChecks: 0,
-        corruptionDetected: false
+        corruptionDetected: false,
       },
-      accessHistory: []
+      accessHistory: [],
     };
 
     return record;
@@ -601,15 +628,15 @@ export class StateManager extends EventEmitter {
 
   private async storeRecord(record: StateRecord): Promise<void> {
     const primaryLocation = await this.selectStorageLocation(record);
-    
+
     // Store primary copy
     await this.storeInLocation(record, primaryLocation);
-    
+
     record.location = {
       primary: primaryLocation,
       storageType: this.getStorageTypeForLocation(primaryLocation),
       lastAccessed: new Date(),
-      accessCount: 0
+      accessCount: 0,
     };
 
     // Create replicas if enabled
@@ -626,16 +653,16 @@ export class StateManager extends EventEmitter {
 
   private async selectStorageLocation(record: StateRecord): Promise<string> {
     switch (this.config.storageType) {
-      case 'memory':
-        return 'memory';
-      case 'file':
+      case "memory":
+        return "memory";
+      case "file":
         return this.fileStorage.generatePath(record.id);
-      case 'database':
-        return 'database';
-      case 'hybrid':
+      case "database":
+        return "database";
+      case "hybrid":
         // Use memory for frequently accessed states, file for others
         if (record.active || record.stateType === QuantumStateType.Healthy) {
-          return 'memory';
+          return "memory";
         }
         return this.fileStorage.generatePath(record.id);
       default:
@@ -643,11 +670,14 @@ export class StateManager extends EventEmitter {
     }
   }
 
-  private async storeInLocation(record: StateRecord, location: string): Promise<void> {
-    if (location === 'memory') {
+  private async storeInLocation(
+    record: StateRecord,
+    location: string,
+  ): Promise<void> {
+    if (location === "memory") {
       // Already handled in storeRecord
       return;
-    } else if (location === 'database') {
+    } else if (location === "database") {
       if (this.databaseStorage) {
         await this.databaseStorage.store(record);
       }
@@ -657,31 +687,38 @@ export class StateManager extends EventEmitter {
     }
   }
 
-  private getStorageTypeForLocation(location: string): 'memory' | 'file' | 'database' {
-    if (location === 'memory') return 'memory';
-    if (location === 'database') return 'database';
-    return 'file';
+  private getStorageTypeForLocation(
+    location: string,
+  ): "memory" | "file" | "database" {
+    if (location === "memory") return "memory";
+    if (location === "database") return "database";
+    return "file";
   }
 
   private async createReplicas(record: StateRecord): Promise<string[]> {
     const replicas = [];
     const replicationCount = Math.min(record.metadata.replicationFactor - 1, 2); // Max 2 replicas
-    
+
     for (let i = 0; i < replicationCount; i++) {
       const replicaLocation = await this.selectReplicaLocation(record, i);
       await this.storeInLocation(record, replicaLocation);
       replicas.push(replicaLocation);
     }
-    
+
     return replicas;
   }
 
-  private async selectReplicaLocation(record: StateRecord, replicaIndex: number): Promise<string> {
+  private async selectReplicaLocation(
+    record: StateRecord,
+    replicaIndex: number,
+  ): Promise<string> {
     // Simple strategy: alternate between file and database storage
     if (replicaIndex % 2 === 0) {
-      return this.fileStorage.generatePath(`${record.id}_replica_${replicaIndex}`);
+      return this.fileStorage.generatePath(
+        `${record.id}_replica_${replicaIndex}`,
+      );
     } else {
-      return 'database';
+      return "database";
     }
   }
 
@@ -689,7 +726,7 @@ export class StateManager extends EventEmitter {
     if (this.memoryCache.size >= this.config.maxMemoryStates) {
       return false;
     }
-    
+
     // Cache active states and healthy states
     return record.active || record.stateType === QuantumStateType.Healthy;
   }
@@ -697,17 +734,17 @@ export class StateManager extends EventEmitter {
   private async loadRecord(stateId: string): Promise<StateRecord | null> {
     // Try different storage locations
     const locations = [
-      'memory',
+      "memory",
       this.fileStorage.generatePath(stateId),
-      'database'
+      "database",
     ];
 
     for (const location of locations) {
       try {
-        if (location === 'memory') {
+        if (location === "memory") {
           const record = this.memoryCache.get(stateId);
           if (record) return record;
-        } else if (location === 'database' && this.databaseStorage) {
+        } else if (location === "database" && this.databaseStorage) {
           const record = await this.databaseStorage.load(stateId);
           if (record) return record;
         } else {
@@ -715,10 +752,10 @@ export class StateManager extends EventEmitter {
           if (record) return record;
         }
       } catch (error) {
-        logger.debug('Failed to load from location', {
+        logger.debug("Failed to load from location", {
           stateId,
           location,
-          error: (error as Error).message
+          error: (error as Error).message,
         });
       }
     }
@@ -732,67 +769,73 @@ export class StateManager extends EventEmitter {
         return false;
       }
 
-      const currentChecksum = createHash('sha256').update(record.ciphertext).digest('hex');
+      const currentChecksum = createHash("sha256")
+        .update(record.ciphertext)
+        .digest("hex");
       const isValid = currentChecksum === record.metadata.checksumSHA256;
-      
+
       record.metadata.integrityChecks++;
       record.metadata.lastVerified = new Date();
-      
+
       if (!isValid) {
         record.metadata.corruptionDetected = true;
-        logger.warn('Integrity verification failed', {
+        logger.warn("Integrity verification failed", {
           stateId: record.id,
           expectedChecksum: record.metadata.checksumSHA256,
-          actualChecksum: currentChecksum
+          actualChecksum: currentChecksum,
         });
       }
-      
+
       return isValid;
     } catch (error) {
-      logger.error('Integrity verification error', error as Error, {
-        stateId: record.id
+      logger.error("Integrity verification error", error as Error, {
+        stateId: record.id,
       });
       return false;
     }
   }
 
-  private async recoverFromReplica(stateId: string): Promise<StateRecord | null> {
-    logger.info('Attempting to recover state from replica', { stateId });
+  private async recoverFromReplica(
+    stateId: string,
+  ): Promise<StateRecord | null> {
+    logger.info("Attempting to recover state from replica", { stateId });
 
     // Try to load from each replica location
     const possibleLocations = [
       this.fileStorage.generatePath(`${stateId}_replica_0`),
       this.fileStorage.generatePath(`${stateId}_replica_1`),
-      'database'
+      "database",
     ];
 
     for (const location of possibleLocations) {
       try {
         let record: StateRecord | null = null;
-        
-        if (location === 'database' && this.databaseStorage) {
+
+        if (location === "database" && this.databaseStorage) {
           record = await this.databaseStorage.load(`${stateId}_replica`);
         } else {
           record = await this.fileStorage.load(location);
         }
 
-        if (record && await this.verifyIntegrity(record)) {
-          logger.info('Successfully recovered state from replica', {
+        if (record && (await this.verifyIntegrity(record))) {
+          logger.info("Successfully recovered state from replica", {
             stateId,
-            replicaLocation: location
+            replicaLocation: location,
           });
           return record;
         }
       } catch (error) {
-        logger.debug('Failed to recover from replica location', {
+        logger.debug("Failed to recover from replica location", {
           stateId,
           location,
-          error: (error as Error).message
+          error: (error as Error).message,
         });
       }
     }
 
-    logger.error('Failed to recover state from any replica',undefined, { stateId });
+    logger.error("Failed to recover state from any replica", undefined, {
+      stateId,
+    });
     return null;
   }
 
@@ -802,15 +845,17 @@ export class StateManager extends EventEmitter {
       // Restore primary location
       await this.storeRecord(repairedRecord);
       this.memoryCache.set(stateId, repairedRecord);
-      
-      logger.info('State repaired successfully', { stateId });
+
+      logger.info("State repaired successfully", { stateId });
       return true;
     }
-    
+
     return false;
   }
 
-  private async recordToQuantumState(record: StateRecord): Promise<QuantumState> {
+  private async recordToQuantumState(
+    record: StateRecord,
+  ): Promise<QuantumState> {
     let processedData = record.ciphertext!;
 
     // Decrypt if encrypted
@@ -828,7 +873,7 @@ export class StateManager extends EventEmitter {
       index: record.stateIndex,
       ciphertext: processedData,
       nonce: randomBytes(16), // Regenerate nonce
-      mac: createHash('sha256').update(processedData).digest('hex'),
+      mac: createHash("sha256").update(processedData).digest("hex"),
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       active: record.active,
@@ -839,14 +884,14 @@ export class StateManager extends EventEmitter {
       entanglements: [],
       metadata: {
         originalDataHash: record.metadata.checksumSHA256,
-        encryptionAlgorithm: 'SEAL',
-        keyId: record.metadata.encryptionKeyId || 'default',
+        encryptionAlgorithm: "SEAL",
+        keyId: record.metadata.encryptionKeyId || "default",
         sizeBytes: processedData.length,
         noiseLevel: 0,
         operationsCount: 0,
         maxOperations: 100,
-        coherenceTime: 300000
-      }
+        coherenceTime: 300000,
+      },
     };
 
     return quantumState;
@@ -859,16 +904,21 @@ export class StateManager extends EventEmitter {
     this.stateIndex.get(dataId)!.add(stateId);
   }
 
-  private recordAccess(record: StateRecord, operation: 'read' | 'write' | 'verify' | 'replicate', success: boolean, duration?: number): void {
+  private recordAccess(
+    record: StateRecord,
+    operation: "read" | "write" | "verify" | "replicate",
+    success: boolean,
+    duration?: number,
+  ): void {
     const accessRecord: AccessRecord = {
       timestamp: new Date(),
       operation,
       success,
-      duration: duration || 0
+      duration: duration || 0,
     };
 
     record.accessHistory.push(accessRecord);
-    
+
     if (record.location) {
       record.location.lastAccessed = new Date();
       record.location.accessCount++;
@@ -880,30 +930,38 @@ export class StateManager extends EventEmitter {
     }
   }
 
-  private updateMetrics(operation: string, record: StateRecord, cacheHit?: boolean): void {
+  private updateMetrics(
+    operation: string,
+    record: StateRecord,
+    cacheHit?: boolean,
+  ): void {
     if (!this.config.enableMetrics) return;
 
     switch (operation) {
-      case 'save':
+      case "save":
         this.metrics.totalStates++;
-        if (record.location?.storageType === 'memory') {
+        if (record.location?.storageType === "memory") {
           this.metrics.memoryStates++;
-        } else if (record.location?.storageType === 'file') {
+        } else if (record.location?.storageType === "file") {
           this.metrics.fileStates++;
-        } else if (record.location?.storageType === 'database') {
+        } else if (record.location?.storageType === "database") {
           this.metrics.databaseStates++;
         }
-        
+
         this.metrics.totalStorageSize += record.metadata.originalSize;
-        
-        if (record.metadata.compressedSize && record.metadata.compressionRatio) {
-          this.metrics.compressionSavings += record.metadata.originalSize - record.metadata.compressedSize;
+
+        if (
+          record.metadata.compressedSize &&
+          record.metadata.compressionRatio
+        ) {
+          this.metrics.compressionSavings +=
+            record.metadata.originalSize - record.metadata.compressedSize;
         }
         break;
 
-      case 'get':
+      case "get":
         if (cacheHit) {
-          this.metrics.cacheHitRate = (this.metrics.cacheHitRate * 0.9) + (1 * 0.1); // Exponential moving average
+          this.metrics.cacheHitRate = this.metrics.cacheHitRate * 0.9 + 1 * 0.1; // Exponential moving average
         } else {
           this.metrics.cacheHitRate = this.metrics.cacheHitRate * 0.9; // Decay without hit
         }
@@ -912,16 +970,24 @@ export class StateManager extends EventEmitter {
   }
 
   private async persistPendingStates(): Promise<void> {
-    logger.debug('Persisting pending states');
+    logger.debug("Persisting pending states");
 
     const persistencePromises = [];
     for (const [stateId, record] of Array.from(this.memoryCache.entries())) {
-      if (record.location?.storageType === 'memory' && 
-          this.config.storageType === 'hybrid') {
+      if (
+        record.location?.storageType === "memory" &&
+        this.config.storageType === "hybrid"
+      ) {
         // Persist memory-only states to file storage
         persistencePromises.push(
-          this.fileStorage.store(record, this.fileStorage.generatePath(stateId))
-            .catch(error => logger.warn('Failed to persist state', { stateId, error: error.message }))
+          this.fileStorage
+            .store(record, this.fileStorage.generatePath(stateId))
+            .catch((error) =>
+              logger.warn("Failed to persist state", {
+                stateId,
+                error: error.message,
+              }),
+            ),
         );
       }
     }
@@ -931,40 +997,40 @@ export class StateManager extends EventEmitter {
   }
 
   private async deleteRecord(stateId: string): Promise<void> {
-    const locations = [
-      this.fileStorage.generatePath(stateId),
-      'database'
-    ];
+    const locations = [this.fileStorage.generatePath(stateId), "database"];
 
     for (const location of locations) {
       try {
-        if (location === 'database' && this.databaseStorage) {
+        if (location === "database" && this.databaseStorage) {
           await this.databaseStorage.delete(stateId);
         } else {
           await this.fileStorage.delete(location);
         }
       } catch (error) {
-        logger.debug('Failed to delete from location', {
+        logger.debug("Failed to delete from location", {
           stateId,
           location,
-          error: (error as Error).message
+          error: (error as Error).message,
         });
       }
     }
   }
 
-  private async deleteReplica(stateId: string, replicaLocation: string): Promise<void> {
+  private async deleteReplica(
+    stateId: string,
+    replicaLocation: string,
+  ): Promise<void> {
     try {
-      if (replicaLocation === 'database' && this.databaseStorage) {
+      if (replicaLocation === "database" && this.databaseStorage) {
         await this.databaseStorage.delete(`${stateId}_replica`);
       } else {
         await this.fileStorage.delete(replicaLocation);
       }
     } catch (error) {
-      logger.warn('Failed to delete replica', {
+      logger.warn("Failed to delete replica", {
         stateId,
         replicaLocation,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
     }
   }
@@ -985,27 +1051,27 @@ class FileStorageAdapter {
 
   public async store(record: StateRecord, filePath: string): Promise<void> {
     await fs.mkdir(dirname(filePath), { recursive: true });
-    
+
     const serialized = JSON.stringify({
       ...record,
-      ciphertext: record.ciphertext?.toString('base64')
+      ciphertext: record.ciphertext?.toString("base64"),
     });
-    
-    await fs.writeFile(filePath, serialized, 'utf-8');
+
+    await fs.writeFile(filePath, serialized, "utf-8");
   }
 
   public async load(filePath: string): Promise<StateRecord | null> {
     try {
-      const data = await fs.readFile(filePath, 'utf-8');
+      const data = await fs.readFile(filePath, "utf-8");
       const parsed = JSON.parse(data);
-      
+
       if (parsed.ciphertext) {
-        parsed.ciphertext = Buffer.from(parsed.ciphertext, 'base64');
+        parsed.ciphertext = Buffer.from(parsed.ciphertext, "base64");
       }
-      
+
       return parsed;
     } catch (error) {
-      if ((error as any).code !== 'ENOENT') {
+      if ((error as any).code !== "ENOENT") {
         throw error;
       }
       return null;
@@ -1016,7 +1082,7 @@ class FileStorageAdapter {
     try {
       await fs.unlink(filePath);
     } catch (error) {
-      if ((error as any).code !== 'ENOENT') {
+      if ((error as any).code !== "ENOENT") {
         throw error;
       }
     }
@@ -1031,36 +1097,36 @@ class FileStorageAdapter {
 class DatabaseStorageAdapter {
   public async store(record: StateRecord): Promise<void> {
     // Mock database storage - in real implementation would use actual database
-    logger.debug('Storing record in database', { stateId: record.id });
+    logger.debug("Storing record in database", { stateId: record.id });
   }
 
   public async load(stateId: string): Promise<StateRecord | null> {
     // Mock database load
-    logger.debug('Loading record from database', { stateId });
+    logger.debug("Loading record from database", { stateId });
     return null;
   }
 
   public async delete(stateId: string): Promise<void> {
     // Mock database delete
-    logger.debug('Deleting record from database', { stateId });
+    logger.debug("Deleting record from database", { stateId });
   }
 
   public async close(): Promise<void> {
     // Close database connections
-    logger.debug('Closing database connections');
+    logger.debug("Closing database connections");
   }
 }
 
 class CompressionEngine {
   public async compress(data: Buffer): Promise<Buffer> {
     // Mock compression - in real implementation would use zlib or similar
-    logger.debug('Compressing data', { originalSize: data.length });
+    logger.debug("Compressing data", { originalSize: data.length });
     return data; // No actual compression in mock
   }
 
   public async decompress(data: Buffer): Promise<Buffer> {
     // Mock decompression
-    logger.debug('Decompressing data', { compressedSize: data.length });
+    logger.debug("Decompressing data", { compressedSize: data.length });
     return data; // No actual decompression in mock
   }
 }
@@ -1068,13 +1134,13 @@ class CompressionEngine {
 class EncryptionEngine {
   public async encrypt(data: Buffer): Promise<Buffer> {
     // Mock encryption - in real implementation would use proper encryption
-    logger.debug('Encrypting data', { dataSize: data.length });
+    logger.debug("Encrypting data", { dataSize: data.length });
     return data; // No actual encryption in mock
   }
 
   public async decrypt(data: Buffer): Promise<Buffer> {
     // Mock decryption
-    logger.debug('Decrypting data', { dataSize: data.length });
+    logger.debug("Decrypting data", { dataSize: data.length });
     return data; // No actual decryption in mock
   }
 }
@@ -1100,5 +1166,5 @@ export {
   FileStorageAdapter,
   DatabaseStorageAdapter,
   CompressionEngine,
-  EncryptionEngine
+  EncryptionEngine,
 };
