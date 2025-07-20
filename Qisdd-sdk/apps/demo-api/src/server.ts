@@ -58,7 +58,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => clearInterval(interval));
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 server.listen(PORT, () => {
   console.log(`Demo API running on port ${PORT}`);
   console.log(`WebSocket event stream available at ws://localhost:${PORT}/api/events`);

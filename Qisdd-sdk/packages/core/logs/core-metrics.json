@@ -1,0 +1,35 @@
+{
+  "quantumStates": {
+    "total": 3,
+    "created": 3,
+    "active": 3,
+    "collapsed": 0
+  },
+  "encryption": {
+    "totalOperations": 5,
+    "encryptions": 3,
+    "decryptions": 1,
+    "zkpProofs": 1,
+    "verifications": 0
+  },
+  "security": {
+    "totalProtected": 1,
+    "authorizedAccess": 1,
+    "unauthorizedAttempts": 1,
+    "threatsBlocked": 1,
+    "averageTrustScore": 0.65
+  },
+  "performance": {
+    "averageResponseTime": 200,
+    "protectionTime": 364,
+    "observationTime": 36,
+    "memoryUsage": 167273712,
+    "successRate": 0.5
+  },
+  "systemHealth": {
+    "overall": "healthy",
+    "uptime": 1.34,
+    "activeSuperpositions": 1,
+    "cryptoOperations": 5
+  }
+}
