@@ -22,10 +22,13 @@ export default function WorkingQISDDDashboard() {
   const [newDataContent, setNewDataContent] = useState('');
   const [newDataType, setNewDataType] = useState<'financial' | 'personal' | 'medical' | 'business' | 'other'>('other');
   const [isProtecting, setIsProtecting] = useState(false);
+  const [protectionError, setProtectionError] = useState<string | null>(null);
+  const [protectionSuccess, setProtectionSuccess] = useState<string | null>(null);
 
   // Hacker Attack Simulation State
   const [isUnderAttack, setIsUnderAttack] = useState(false);
   const [lastAttackResult, setLastAttackResult] = useState<any>(null);
+  const [attackError, setAttackError] = useState<string | null>(null);
 
   // Real-time data with actual quantum and encryption values
   const [data, setData] = useState(() => 
@@ -64,14 +67,24 @@ export default function WorkingQISDDDashboard() {
 
   // Handle Add Data Protection
   const handleProtectData = async () => {
-    if (!newDataName.trim() || !newDataContent.trim()) return;
+    if (!newDataName.trim() || !newDataContent.trim()) {
+      setProtectionError('Please provide both name and content for the data');
+      return;
+    }
     
     setIsProtecting(true);
+    setProtectionError(null);
+    setProtectionSuccess(null);
+    
     try {
-      // Simulate protection process with API call
+      console.log('🔄 Protecting data:', { name: newDataName, type: newDataType });
+      
       const response = await fetch('http://localhost:3002/api/protect-data', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           name: newDataName,
           content: newDataContent,
@@ -79,21 +92,37 @@ export default function WorkingQISDDDashboard() {
         })
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Data protected:', result);
-        
-        // Reset form
-        setNewDataName('');
-        setNewDataContent('');
-        setNewDataType('other');
-        setShowAddDataModal(false);
-        
-        // Refresh metrics
-        fetchCoreMetrics();
+      console.log('📡 API Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('❌ API Error:', errorData);
+        throw new Error(`Server error: ${response.status} - ${errorData}`);
       }
+      
+      const result = await response.json();
+      console.log('✅ Data protected successfully:', result);
+      
+      setProtectionSuccess(`Successfully protected "${newDataName}" with ${result.quantumStatesCreated} quantum states!`);
+      
+      // Reset form
+      setNewDataName('');
+      setNewDataContent('');
+      setNewDataType('other');
+      
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowAddDataModal(false);
+        setProtectionSuccess(null);
+      }, 2000);
+      
+      // Refresh metrics
+      setTimeout(() => fetchCoreMetrics(), 1000);
+      
     } catch (error) {
-      console.error('Protection failed:', error);
+      console.error('❌ Protection failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setProtectionError(`Failed to protect data: ${errorMessage}`);
     } finally {
       setIsProtecting(false);
     }
@@ -102,21 +131,40 @@ export default function WorkingQISDDDashboard() {
   // Simulate Hacker Attack
   const simulateHackerAttack = async () => {
     setIsUnderAttack(true);
+    setAttackError(null);
+    setLastAttackResult(null);
+    
     try {
+      console.log('🚨 Simulating hacker attack...');
+      
       const response = await fetch('http://localhost:3002/api/simulate-attack', {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        setLastAttackResult(result);
-        console.log('Attack simulated:', result);
-        
-        // Refresh metrics to show blocked attacks
-        setTimeout(() => fetchCoreMetrics(), 1000);
+      console.log('📡 Attack API Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('❌ Attack API Error:', errorData);
+        throw new Error(`Server error: ${response.status} - ${errorData}`);
       }
+      
+      const result = await response.json();
+      console.log('✅ Attack simulation completed:', result);
+      
+      setLastAttackResult(result);
+      
+      // Refresh metrics to show blocked attacks
+      setTimeout(() => fetchCoreMetrics(), 1000);
+      
     } catch (error) {
-      console.error('Attack simulation failed:', error);
+      console.error('❌ Attack simulation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setAttackError(`Attack simulation failed: ${errorMessage}`);
     } finally {
       setTimeout(() => setIsUnderAttack(false), 2000);
     }
@@ -338,7 +386,25 @@ export default function WorkingQISDDDashboard() {
             gap: '8px'
           }}>
             <CheckCircle size={16} />
-            Blocked {lastAttackResult.blockedCount || 0} attacks!
+            Blocked {lastAttackResult.summary?.blockedCount || 0}/{lastAttackResult.summary?.totalAttacks || 0} attacks! 
+            ({lastAttackResult.summary?.successRate || 0}% success rate)
+          </div>
+        )}
+
+        {attackError && (
+          <div style={{
+            padding: '12px 20px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid #ef4444',
+            borderRadius: '8px',
+            color: '#fca5a5',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <AlertTriangle size={16} />
+            {attackError}
           </div>
         )}
       </div>
@@ -627,6 +693,36 @@ export default function WorkingQISDDDashboard() {
                 }}
               />
             </div>
+
+            {/* Error Message */}
+            {protectionError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid #ef4444',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '16px',
+                color: '#fca5a5',
+                fontSize: '14px'
+              }}>
+                ❌ {protectionError}
+              </div>
+            )}
+
+            {/* Success Message */}
+            {protectionSuccess && (
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid #22c55e',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '16px',
+                color: '#86efac',
+                fontSize: '14px'
+              }}>
+                ✅ {protectionSuccess}
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
