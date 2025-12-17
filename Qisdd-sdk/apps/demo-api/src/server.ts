@@ -9,14 +9,14 @@ app.use('/api', routes);
 
 // --- WebSocket server for /api/events ---
 import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
+import WebSocket from 'ws';
 
 const server = createServer(app);
-const wss = new WebSocketServer({ server, path: '/api/events' });
+const wss = new WebSocket.Server({ server, path: '/api/events' });
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws: WebSocket) => {
   // Optionally handle subscribe/auth messages
-  ws.on('message', (msg) => {
+  ws.on('message', (msg: WebSocket.RawData) => {
     // Parse and ignore for now
   });
   // Emit mock events every 4 seconds
